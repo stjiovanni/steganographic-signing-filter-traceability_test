@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watermark Robustness Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Watermark Robustness Dashboard</h1>
+    <nav id="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="per-transform">Per-Transform</button>
+      <button class="tab" data-tab="ensemble">Ensemble Matrix</button>
+      <button class="tab" data-tab="per-image">Per-Image</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Overview -->
+    <section id="tab-overview" class="tab-panel active">
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="card chart-card">
+        <h2>Mean Bit Accuracy by Transform</h2>
+        <canvas id="overview-chart"></canvas>
+      </div>
+    </section>
+
+    <!-- Per-Transform -->
+    <section id="tab-per-transform" class="tab-panel">
+      <div class="controls">
+        <label for="transform-select">Transform:</label>
+        <select id="transform-select"></select>
+      </div>
+      <div class="card chart-card">
+        <h2>Method Performance vs Intensity</h2>
+        <canvas id="transform-chart"></canvas>
+      </div>
+    </section>
+
+    <!-- Ensemble Matrix -->
+    <section id="tab-ensemble" class="tab-panel">
+      <div class="card">
+        <h2>Best Method per Transform &times; Intensity</h2>
+        <div class="matrix-wrapper">
+          <table id="ensemble-table"></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Per-Image -->
+    <section id="tab-per-image" class="tab-panel">
+      <div class="controls">
+        <label for="image-select">Image:</label>
+        <select id="image-select"></select>
+      </div>
+      <div id="per-image-content" class="per-image-content"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
