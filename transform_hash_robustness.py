@@ -67,6 +67,7 @@ def main():
     f_out = open(args.output_csv, 'w', newline='')
     writer = csv.DictWriter(f_out, fieldnames=fieldnames)
     writer.writeheader()
+    rows_written = 0
 
     t_start = time.time()
     for idx, img_path in enumerate(image_files):
@@ -111,6 +112,7 @@ def main():
                             'aspect_ratio': t_aspect,
                         }
                         writer.writerow(row)
+                        rows_written += 1
                 except Exception as e:
                     print(f'ERROR: {fname} / {tf}={intensity}: {e}', file=sys.stderr)
                     continue
@@ -121,8 +123,15 @@ def main():
 
     f_out.close()
     elapsed = time.time() - t_start
-    print(f'Done. {len(image_files)} images written to {args.output_csv}')
+    print(f'Done. {rows_written} rows written to {args.output_csv}')
     print(f'Total time: {elapsed:.1f}s')
+
+    # Final validation printout
+    with open(args.output_csv, 'r', newline='') as f_check:
+        reader = csv.DictReader(f_check)
+        all_rows = list(reader)
+        unique_images = len(set(r['image_id'] for r in all_rows))
+    print(f'Validation: {len(all_rows)} total rows, {unique_images} unique image_ids written')
 
 if __name__ == '__main__':
     main()

@@ -4,4 +4,7 @@ __pycache__/
 coco_val2017/val2017/
 output/trustmark_watermarked/
 output/hash_organized/
+output/uploads/
+output/processed/
+output/_tmp_jpeg.jpg
 *.zip

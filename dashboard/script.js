@@ -6,15 +6,62 @@ const COLORS = {
   hash: "#9b59b6",
 };
 const METHOD_KEYS = ["trustmark", "lsb", "dct"];
+const HASH_BITS = 256;
 
 let overviewChart = null;
 let transformChart = null;
+let transformAbort = null;
+
+let overviewFailed = false;
+let perTransformFailed = false;
+let ensembleFailed = false;
+let svTransformsFailed = false;
 
 // ── Helpers ──────────────────────────────────────────────────────
-async function get(path) {
-  const r = await fetch(`${API}${path}`);
-  if (!r.ok) throw new Error(`${r.status} ${path}`);
+async function get(path, opts) {
+  const r = await fetch(`${API}${path}`, opts);
+  if (!r.ok) throw new Error(await readError(r));
   return r.json();
+}
+
+async function postForm(path, fd) {
+  const r = await fetch(`${API}${path}`, { method: "POST", body: fd });
+  if (!r.ok) throw new Error(await readError(r));
+  return r.json();
+}
+
+async function postJSON(path, body) {
+  const r = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await readError(r));
+  return r.json();
+}
+
+async function readError(r) {
+  try {
+    const body = await r.json();
+    if (body && body.detail) {
+      return typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+    }
+    return r.statusText;
+  } catch (_) {
+    return r.statusText || `HTTP ${r.status}`;
+  }
+}
+
+function showError(el, msg) {
+  if (!el) return;
+  el.textContent = msg;
+  el.hidden = false;
+}
+
+function clearError(el) {
+  if (!el) return;
+  el.textContent = "";
+  el.hidden = true;
 }
 
 function $(sel) {
@@ -28,33 +75,80 @@ function meanValues(obj) {
 }
 
 // ── Tab Switching ────────────────────────────────────────────────
-document.querySelectorAll(".tab").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
-    btn.classList.add("active");
-    $(`#tab-${btn.dataset.tab}`).classList.add("active");
-
-    if (btn.dataset.tab === "per-transform" && !$("#transform-select").options.length) {
-      initPerTransform();
-    }
-    if (btn.dataset.tab === "ensemble" && !$("#ensemble-table").rows.length) {
-      initEnsemble();
-    }
-    if (btn.dataset.tab === "per-image" && !$("#image-select").options.length) {
-      initPerImage();
-    }
+function activateTab(btn) {
+  document.querySelectorAll(".tab").forEach((t) => {
+    const active = t === btn;
+    t.classList.toggle("active", active);
+    t.setAttribute("aria-selected", String(active));
+    t.tabIndex = active ? 0 : -1;
   });
+  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+  const panel = $(`#tab-${btn.dataset.tab}`);
+  panel.classList.add("active");
+
+  if (btn.dataset.tab === "overview" && overviewFailed) {
+    overviewFailed = false;
+    initOverview();
+  }
+  if (btn.dataset.tab === "per-transform" && (!$("#transform-select").options.length || perTransformFailed)) {
+    perTransformFailed = false;
+    initPerTransform();
+  }
+  if (btn.dataset.tab === "ensemble" && (!$("#ensemble-table").rows.length || ensembleFailed)) {
+    ensembleFailed = false;
+    initEnsemble();
+  }
+  if (btn.dataset.tab === "per-image" && !$("#image-select").options.length) {
+    initPerImage();
+  }
+  if (btn.dataset.tab === "sign-verify" && (!$("#sv-filter-select").options.length || svTransformsFailed)) {
+    svTransformsFailed = false;
+    svInitTransforms();
+  }
+}
+
+document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => activateTab(btn));
+});
+
+$("#tabs").addEventListener("keydown", (e) => {
+  const tabs = Array.from(document.querySelectorAll(".tab"));
+  const idx = tabs.indexOf(document.activeElement);
+  if (idx === -1) return;
+  let next = null;
+  if (e.key === "ArrowRight") next = tabs[(idx + 1) % tabs.length];
+  else if (e.key === "ArrowLeft") next = tabs[(idx - 1 + tabs.length) % tabs.length];
+  else if (e.key === "Home") next = tabs[0];
+  else if (e.key === "End") next = tabs[tabs.length - 1];
+  else return;
+  e.preventDefault();
+  next.focus();
+  activateTab(next);
 });
 
 // ── Chart.js global defaults ─────────────────────────────────────
-Chart.defaults.color = "#8888aa";
-Chart.defaults.borderColor = "rgba(255,255,255,0.06)";
-Chart.defaults.font.family = 'Jost, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif';
+if (typeof Chart !== "undefined") {
+  Chart.defaults.color = "#8888aa";
+  Chart.defaults.borderColor = "rgba(255,255,255,0.06)";
+  Chart.defaults.font.family = 'Jost, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif';
+}
 
 // ── Overview ─────────────────────────────────────────────────────
 async function initOverview() {
-  const summary = await get("/api/summary");
+  if (overviewChart) {
+    overviewChart.destroy();
+    overviewChart = null;
+  }
+  clearError($("#overview-chart-error"));
+
+  let summary;
+  try {
+    summary = await get("/api/summary");
+  } catch (e) {
+    overviewFailed = true;
+    $("#stats-grid").innerHTML = `<div class="no-data">Failed to load overview: ${e.message}</div>`;
+    return;
+  }
 
   const grid = $("#stats-grid");
   grid.innerHTML = `
@@ -64,50 +158,66 @@ async function initOverview() {
     <div class="stat-card"><div class="label">Transform Types</div><div class="value blue">${summary.transforms.length}</div></div>
   `;
 
-  const [tm, ls, dc, hm] = await Promise.all([
-    get("/api/trustmark/by_transform?agg=mean"),
-    get("/api/lsb/by_transform?agg=mean"),
-    get("/api/dct/by_transform?agg=mean"),
-    get("/api/hash/by_transform?agg=mean"),
-  ]);
+  try {
+    const [tm, ls, dc, hm] = await Promise.all([
+      get("/api/trustmark/by_transform?agg=mean"),
+      get("/api/lsb/by_transform?agg=mean"),
+      get("/api/dct/by_transform?agg=mean"),
+      get("/api/hash/by_transform?agg=mean"),
+    ]);
 
-  const transforms = summary.transforms;
-  const tmMeans = transforms.map((t) => meanValues(tm[t] || {}));
-  const lsMeans = transforms.map((t) => meanValues(ls[t] || {}));
-  const dcMeans = transforms.map((t) => meanValues(dc[t] || {}));
-  const hmMeans = transforms.map((t) => {
-    const raw = meanValues(hm[t] || {});
-    return 1 - raw / 256;
-  });
+    const transforms = summary.transforms;
+    const tmMeans = transforms.map((t) => meanValues(tm[t] || {}));
+    const lsMeans = transforms.map((t) => meanValues(ls[t] || {}));
+    const dcMeans = transforms.map((t) => meanValues(dc[t] || {}));
+    const hmMeans = transforms.map((t) => {
+      const raw = meanValues(hm[t] || {});
+      return 1 - raw / HASH_BITS;
+    });
 
-  const ctx = $("#overview-chart").getContext("2d");
-  overviewChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: transforms,
-      datasets: [
-        { label: "TrustMark", data: tmMeans, backgroundColor: COLORS.trustmark + "cc" },
-        { label: "LSB", data: lsMeans, backgroundColor: COLORS.lsb + "cc" },
-        { label: "DCT", data: dcMeans, backgroundColor: COLORS.dct + "cc" },
-        { label: "Hash", data: hmMeans, backgroundColor: COLORS.hash + "cc" },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: { legend: { labels: { usePointStyle: true, pointStyle: "circle" } } },
-      scales: {
-        y: { beginAtZero: true, max: 1, title: { display: true, text: "Mean Robustness (0-1)" } },
-        x: { ticks: { maxRotation: 45, minRotation: 30 } },
+    const ctx = $("#overview-chart").getContext("2d");
+    overviewChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: transforms,
+        datasets: [
+          { label: "TrustMark", data: tmMeans, backgroundColor: COLORS.trustmark + "cc" },
+          { label: "LSB", data: lsMeans, backgroundColor: COLORS.lsb + "cc" },
+          { label: "DCT", data: dcMeans, backgroundColor: COLORS.dct + "cc" },
+          { label: "Hash", data: hmMeans, backgroundColor: COLORS.hash + "cc" },
+        ],
       },
-    },
-  });
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { labels: { usePointStyle: true, pointStyle: "circle" } } },
+        scales: {
+          y: { beginAtZero: true, max: 1, title: { display: true, text: "Mean Robustness (0-1)" } },
+          x: { ticks: { maxRotation: 45, minRotation: 30 } },
+        },
+      },
+    });
+    overviewFailed = false;
+  } catch (e) {
+    overviewFailed = true;
+    showError($("#overview-chart-error"), `Failed to load chart data: ${e.message}`);
+  }
 }
 
 // ── Per-Transform ────────────────────────────────────────────────
 async function initPerTransform() {
-  const transforms = await get("/api/transforms");
+  let transforms;
+  try {
+    transforms = await get("/api/transforms");
+  } catch (e) {
+    perTransformFailed = true;
+    showError($("#transform-error"), `Failed to load transforms: ${e.message}`);
+    return;
+  }
+  clearError($("#transform-error"));
+
   const sel = $("#transform-select");
+  sel.innerHTML = "";
   const names = Object.keys(transforms).sort();
   names.forEach((n) => {
     const o = document.createElement("option");
@@ -115,117 +225,146 @@ async function initPerTransform() {
     o.textContent = n;
     sel.appendChild(o);
   });
-  sel.addEventListener("change", () => loadTransformChart(sel.value));
-  if (names.length) loadTransformChart(names[0]);
+  if (!sel.dataset.bound) {
+    sel.dataset.bound = "1";
+    sel.addEventListener("change", () => {
+      clearError($("#transform-error"));
+      loadTransformChart(sel.value).catch((e) => {
+        if (e.name === "AbortError") return;
+        showError($("#transform-error"), `Failed to load chart: ${e.message}`);
+      });
+    });
+  }
+  if (names.length) {
+    loadTransformChart(names[0]).catch((e) => {
+      if (e.name === "AbortError") return;
+      showError($("#transform-error"), `Failed to load chart: ${e.message}`);
+    });
+  }
+  perTransformFailed = false;
 }
 
 async function loadTransformChart(transform) {
-  const [tm, ls, dc, hm] = await Promise.all([
-    get(`/api/trustmark/by_transform?agg=mean`),
-    get(`/api/lsb/by_transform?agg=mean`),
-    get(`/api/dct/by_transform?agg=mean`),
-    get(`/api/hash/by_algorithm?transform=${encodeURIComponent(transform)}&agg=mean`),
-  ]);
+  if (transformAbort) transformAbort.abort();
+  const controller = new AbortController();
+  transformAbort = controller;
+  const signal = controller.signal;
+  try {
+    const [tm, ls, dc, hm] = await Promise.all([
+      get(`/api/trustmark/by_transform?agg=mean`, { signal }),
+      get(`/api/lsb/by_transform?agg=mean`, { signal }),
+      get(`/api/dct/by_transform?agg=mean`, { signal }),
+      get(`/api/hash/by_algorithm?transform=${encodeURIComponent(transform)}&agg=mean`, { signal }),
+    ]);
 
-  const tmIntensities = tm[transform] || {};
-  const lsIntensities = ls[transform] || {};
-  const dcIntensities = dc[transform] || {};
+    const tmIntensities = tm[transform] || {};
+    const lsIntensities = ls[transform] || {};
+    const dcIntensities = dc[transform] || {};
 
-  // Collect all intensities across watermark methods
-  const intensitySet = new Set();
-  [tmIntensities, lsIntensities, dcIntensities].forEach((o) =>
-    Object.keys(o).forEach((k) => intensitySet.add(k))
-  );
-  // Add hash intensities
-  Object.values(hm).forEach((o) => Object.keys(o).forEach((k) => intensitySet.add(k)));
+    // Collect all intensities across watermark methods
+    const intensitySet = new Set();
+    [tmIntensities, lsIntensities, dcIntensities].forEach((o) =>
+      Object.keys(o).forEach((k) => intensitySet.add(k))
+    );
+    // Add hash intensities
+    Object.values(hm).forEach((o) => Object.keys(o).forEach((k) => intensitySet.add(k)));
 
-  const intensities = Array.from(intensitySet)
-    .map(Number)
-    .sort((a, b) => a - b);
+    const intensities = Array.from(intensitySet)
+      .map(Number)
+      .sort((a, b) => a - b);
 
-  const tmData = intensities.map((i) => tmIntensities[String(i)] ?? null);
-  const lsData = intensities.map((i) => lsIntensities[String(i)] ?? null);
-  const dcData = intensities.map((i) => dcIntensities[String(i)] ?? null);
+    const tmData = intensities.map((i) => tmIntensities[String(i)] ?? null);
+    const lsData = intensities.map((i) => lsIntensities[String(i)] ?? null);
+    const dcData = intensities.map((i) => dcIntensities[String(i)] ?? null);
 
-  // Hash: invert (1 - hamming/256)
-  const hashAlgos = Object.keys(hm);
-  const hashData = intensities.map((i) => {
-    const vals = hashAlgos.map((a) => hm[a]?.[String(i)]).filter((v) => v != null);
-    if (!vals.length) return null;
-    const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
-    return 1 - mean / 256;
-  });
+    // Hash: invert (1 - hamming/HASH_BITS)
+    const hashAlgos = Object.keys(hm);
+    const hashData = intensities.map((i) => {
+      const vals = hashAlgos.map((a) => hm[a]?.[String(i)]).filter((v) => v != null);
+      if (!vals.length) return null;
+      const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+      return 1 - mean / HASH_BITS;
+    });
 
-  const labels = intensities.map(String);
+    const labels = intensities.map(String);
 
-  if (transformChart) transformChart.destroy();
+    if (transformChart) transformChart.destroy();
 
-  const ctx = $("#transform-chart").getContext("2d");
-  transformChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        { label: "TrustMark", data: tmData, borderColor: COLORS.trustmark, backgroundColor: COLORS.trustmark + "22", tension: 0.25, yAxisID: "y", pointRadius: 2 },
-        { label: "LSB", data: lsData, borderColor: COLORS.lsb, backgroundColor: COLORS.lsb + "22", tension: 0.25, yAxisID: "y", pointRadius: 2 },
-        { label: "DCT", data: dcData, borderColor: COLORS.dct, backgroundColor: COLORS.dct + "22", tension: 0.25, yAxisID: "y", pointRadius: 2 },
-        { label: "Hash (inv)", data: hashData, borderColor: COLORS.hash, backgroundColor: COLORS.hash + "22", tension: 0.25, yAxisID: "y2", pointRadius: 2, borderDash: [6, 3] },
+    const ctx = $("#transform-chart").getContext("2d");
+    transformChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          { label: "TrustMark", data: tmData, borderColor: COLORS.trustmark, backgroundColor: COLORS.trustmark + "22", tension: 0.25, yAxisID: "y", pointRadius: 2 },
+          { label: "LSB", data: lsData, borderColor: COLORS.lsb, backgroundColor: COLORS.lsb + "22", tension: 0.25, yAxisID: "y", pointRadius: 2 },
+          { label: "DCT", data: dcData, borderColor: COLORS.dct, backgroundColor: COLORS.dct + "22", tension: 0.25, yAxisID: "y", pointRadius: 2 },
+          { label: "Hash (inv)", data: hashData, borderColor: COLORS.hash, backgroundColor: COLORS.hash + "22", tension: 0.25, yAxisID: "y2", pointRadius: 2, borderDash: [6, 3] },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { labels: { usePointStyle: true, pointStyle: "circle" } },
+        },
+        scales: {
+          y: {
+            type: "linear",
+            position: "left",
+            min: 0,
+            max: 1,
+            title: { display: true, text: "Bit Accuracy" },
+          },
+          y2: {
+            type: "linear",
+            position: "right",
+            min: 0,
+            max: 1,
+            title: { display: true, text: "Hash (inv)" },
+            grid: { drawOnChartArea: false },
+          },
+          x: { title: { display: true, text: "Intensity" } },
+        },
+      },
+      plugins: [
+        {
+          id: "thresholdLine",
+          afterDraw(chart) {
+            const yScale = chart.scales.y;
+            const y = yScale.getPixelForValue(0.5);
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.setLineDash([8, 4]);
+            ctx.strokeStyle = "rgba(255,255,255,0.3)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(chart.chartArea.left, y);
+            ctx.lineTo(chart.chartArea.right, y);
+            ctx.stroke();
+            ctx.restore();
+          },
+        },
       ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      interaction: { mode: "index", intersect: false },
-      plugins: {
-        legend: { labels: { usePointStyle: true, pointStyle: "circle" } },
-        annotation: undefined,
-      },
-      scales: {
-        y: {
-          type: "linear",
-          position: "left",
-          min: 0,
-          max: 1,
-          title: { display: true, text: "Bit Accuracy" },
-        },
-        y2: {
-          type: "linear",
-          position: "right",
-          min: 0,
-          max: 1,
-          title: { display: true, text: "Hash (inv)" },
-          grid: { drawOnChartArea: false },
-        },
-        x: { title: { display: true, text: "Intensity" } },
-      },
-    },
-    plugins: [
-      {
-        id: "thresholdLine",
-        afterDraw(chart) {
-          const yScale = chart.scales.y;
-          const y = yScale.getPixelForValue(0.5);
-          const ctx = chart.ctx;
-          ctx.save();
-          ctx.setLineDash([8, 4]);
-          ctx.strokeStyle = "rgba(255,255,255,0.3)";
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(chart.chartArea.left, y);
-          ctx.lineTo(chart.chartArea.right, y);
-          ctx.stroke();
-          ctx.restore();
-        },
-      },
-    ],
-  });
+    });
+  } finally {
+    if (transformAbort === controller) transformAbort = null;
+  }
 }
 
 // ── Ensemble Matrix ──────────────────────────────────────────────
 async function initEnsemble() {
-  const data = await get("/api/ensemble/matrix");
-  const table = $("#ensemble-table");
+  let data;
+  try {
+    data = await get("/api/ensemble/matrix");
+  } catch (e) {
+    ensembleFailed = true;
+    showError($("#ensemble-error"), `Failed to load ensemble matrix: ${e.message}`);
+    return;
+  }
 
+  const table = $("#ensemble-table");
   const methodColorMap = {
     trustmark: COLORS.trustmark,
     hash: COLORS.hash,
@@ -233,20 +372,26 @@ async function initEnsemble() {
     dct: COLORS.dct,
   };
 
+  const transforms = data.transforms || [];
+  if (!transforms.length) {
+    showError($("#ensemble-error"), "No ensemble data available.");
+    return;
+  }
+  clearError($("#ensemble-error"));
+
+  const intensities = data.intensities?.[transforms[0]] || [];
   let html = "<thead><tr><th>Transform</th>";
-  const firstTransform = data.transforms[0];
-  const intensities = data.intensities[firstTransform] || [];
   intensities.forEach((i) => {
     html += `<th>${i}</th>`;
   });
   html += "</tr></thead><tbody>";
 
-  data.transforms.forEach((t) => {
+  transforms.forEach((t) => {
     html += `<tr><th>${t}</th>`;
-    const tIntensities = data.intensities[t] || [];
+    const tIntensities = data.intensities?.[t] || [];
     tIntensities.forEach((i) => {
       const key = String(i);
-      const entry = data.best[t]?.[key];
+      const entry = data.best?.[t]?.[key];
       if (entry) {
         const color = methodColorMap[entry] || "#555";
         html += `<td class="matrix-cell" style="background:${color}22;color:${color}">${entry}</td>`;
@@ -258,6 +403,7 @@ async function initEnsemble() {
   });
   html += "</tbody>";
   table.innerHTML = html;
+  ensembleFailed = false;
 }
 
 // ── Per-Image ────────────────────────────────────────────────────
@@ -330,5 +476,230 @@ async function loadPerImage(id) {
   }
 }
 
+// ── Sign / Verify ───────────────────────────────────────────────
+let svState = {
+  imageId: null,
+  filteredId: null,
+  signedId: null,
+  signedMethod: null,
+  transformSteps: {},
+};
+
+function svPlaceholder(slot) {
+  slot.innerHTML = '<span class="sv-placeholder">—</span>';
+}
+
+function svShowImage(slot, imageId, alt) {
+  slot.innerHTML = `<img src="/api/preview/${imageId}" alt="${alt}">`;
+}
+
+function svStatus(msg, type) {
+  const el = $("#sv-status");
+  el.textContent = msg;
+  el.className = "sv-status" + (type ? ` ${type}` : "");
+}
+
+function svShowResults(data) {
+  const card = $("#sv-results-card");
+  const grid = $("#sv-results");
+  card.style.display = "";
+  const items = [
+    { label: "Method", value: data.method },
+    { label: "Detected", value: data.detected ? "Yes" : "No" },
+    { label: "Bit Accuracy", value: (data.bit_accuracy * 100).toFixed(1) + "%" },
+    { label: "Payload", value: data.decoded_payload || "—" },
+  ];
+  if (data.schema) {
+    items.push({ label: "Schema", value: data.schema });
+  }
+  grid.innerHTML = items
+    .map(
+      (i) =>
+        `<div class="sv-result-item"><div class="sv-result-label">${i.label}</div><div class="sv-result-value">${i.value}</div></div>`
+    )
+    .join("");
+}
+
+function svResetPreviews() {
+  svPlaceholder($("#sv-preview-original"));
+  svPlaceholder($("#sv-preview-filtered"));
+  svPlaceholder($("#sv-preview-signed"));
+  $("#sv-results-card").style.display = "none";
+}
+
+async function svInitTransforms() {
+  try {
+    const data = await get("/api/transforms/list");
+    svState.transformSteps = data.steps;
+    const sel = $("#sv-filter-select");
+    sel.innerHTML = "";
+    data.transforms.forEach((t) => {
+      const o = document.createElement("option");
+      o.value = t;
+      o.textContent = t;
+      sel.appendChild(o);
+    });
+    if (data.transforms.length) svUpdateIntensitySlider();
+    clearError($("#sv-transforms-error"));
+    svTransformsFailed = false;
+  } catch (e) {
+    svTransformsFailed = true;
+    showError($("#sv-transforms-error"), `Failed to load transforms: ${e.message}`);
+  }
+}
+
+function svUpdateIntensitySlider() {
+  const sel = $("#sv-filter-select");
+  const steps = svState.transformSteps[sel.value] || [];
+  const slider = $("#sv-intensity-slider");
+  const text = $("#sv-intensity-input");
+  if (steps.length === 0) {
+    slider.min = 0;
+    slider.max = 100;
+    slider.value = 50;
+    text.value = "";
+    return;
+  }
+  slider.min = 0;
+  slider.max = steps.length - 1;
+  slider.value = 0;
+  text.value = String(steps[0]);
+  text.dataset.steps = JSON.stringify(steps);
+}
+
+// File picker
+$("#sv-file-input").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  $("#sv-file-name").textContent = f ? f.name : "No file chosen";
+});
+
+// Upload
+$("#sv-upload-btn").addEventListener("click", async () => {
+  const file = $("#sv-file-input").files[0];
+  if (!file) return svStatus("Select a file first", "error");
+  const btn = $("#sv-upload-btn");
+  const fd = new FormData();
+  fd.append("file", file);
+  btn.disabled = true;
+  svStatus("Uploading…");
+  try {
+    const data = await postForm("/api/upload", fd);
+    svState.imageId = data.image_id;
+    svState.filteredId = null;
+    svState.signedId = null;
+    svState.signedMethod = null;
+    $("#sv-method-select").disabled = false;
+    svResetPreviews();
+    svShowImage($("#sv-preview-original"), data.image_id, "Original");
+    $("#sv-filter-btn").disabled = false;
+    $("#sv-sign-btn").disabled = false;
+    $("#sv-verify-btn").disabled = true;
+    svStatus("Uploaded", "ok");
+  } catch (e) {
+    svStatus("Upload failed: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Filter select → update slider
+$("#sv-filter-select").addEventListener("change", svUpdateIntensitySlider);
+
+// Slider ↔ text sync
+$("#sv-intensity-slider").addEventListener("input", () => {
+  const steps = JSON.parse($("#sv-intensity-input").dataset.steps || "[]");
+  const idx = parseInt($("#sv-intensity-slider").value, 10);
+  if (steps.length > idx) $("#sv-intensity-input").value = String(steps[idx]);
+});
+
+// Apply Filter
+$("#sv-filter-btn").addEventListener("click", async () => {
+  const id = svState.imageId;
+  if (!id) return svStatus("Upload an image first", "error");
+  const transform = $("#sv-filter-select").value;
+  const intensity = $("#sv-intensity-input").value;
+  const steps = svState.transformSteps[transform] || [];
+  if (!steps.length) return svStatus("No intensity steps available for this transform", "error");
+  if (!steps.includes(intensity)) {
+    return svStatus(`Invalid intensity. Expected one of: ${steps.join(", ")}`, "error");
+  }
+  const btn = $("#sv-filter-btn");
+  btn.disabled = true;
+  svState.filteredId = null;
+  svStatus("Applying filter…");
+  try {
+    const data = await postJSON("/api/filter", {
+      image_id: id,
+      transform_name: transform,
+      intensity: isNaN(Number(intensity)) ? intensity : Number(intensity),
+    });
+    svState.filteredId = data.image_id + "_" + data.transform + "_" + data.intensity;
+    svShowImage($("#sv-preview-filtered"), svState.filteredId, "Filtered");
+    $("#sv-sign-btn").disabled = false;
+    svStatus("Filter applied", "ok");
+  } catch (e) {
+    svStatus("Filter failed: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Sign
+$("#sv-sign-btn").addEventListener("click", async () => {
+  const id = svState.filteredId || svState.imageId;
+  if (!id) return svStatus("Upload an image first", "error");
+  const method = $("#sv-method-select").value;
+  const payload = $("#sv-payload-input").value || undefined;
+  const btn = $("#sv-sign-btn");
+  btn.disabled = true;
+  svStatus("Signing… (TrustMark may take a moment)");
+  try {
+    const data = await postJSON("/api/sign", { image_id: id, method, payload });
+    svState.signedId = data.signed_id;
+    svState.signedMethod = method;
+    $("#sv-method-select").disabled = true;
+    svShowImage($("#sv-preview-signed"), data.signed_id, "Signed");
+    $("#sv-verify-btn").disabled = false;
+    svStatus("Signed successfully", "ok");
+  } catch (e) {
+    svStatus("Sign failed: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Verify
+$("#sv-verify-btn").addEventListener("click", async () => {
+  const id = svState.signedId;
+  if (!id) return svStatus("Sign an image first", "error");
+  const method = svState.signedMethod;
+  if (!method) return svStatus("Sign an image first", "error");
+  const btn = $("#sv-verify-btn");
+  btn.disabled = true;
+  svStatus("Verifying…");
+  try {
+    const data = await postJSON("/api/verify", { image_id: id, method });
+    svShowResults(data);
+    svStatus("Verification complete", "ok");
+  } catch (e) {
+    svStatus("Verify failed: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 // ── Boot ─────────────────────────────────────────────────────────
 initOverview();
+
+window.addEventListener("pagehide", () => {
+  if (overviewChart) {
+    overviewChart.destroy();
+    overviewChart = null;
+  }
+  if (transformChart) {
+    transformChart.destroy();
+    transformChart = null;
+  }
+  if (perImageAbort) perImageAbort.abort();
+  if (transformAbort) transformAbort.abort();
+});

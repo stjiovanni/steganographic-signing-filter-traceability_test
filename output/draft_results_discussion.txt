@@ -1,0 +1,49 @@
+3. Results and Discussion
+
+3.1 Overview
+
+This chapter presents the experimental results of evaluating four digital media fingerprinting and watermarking pipelines across 100 COCO images subjected to 12 image transforms at multiple intensity levels. The four pipelines tested were: (i) perceptual hashing, using seven classical algorithms plus Google PDQ; (ii) TrustMark, a deep-learning-based robust watermark; (iii) LSB steganography; and (iv) DCT-domain steganography. Each pipeline was evaluated independently for its ability to survive common image transformations, and an ensemble decision matrix was constructed to identify optimal method selection per transform type. A total of 64,000 hash tests and 24,300 watermark tests were conducted.
+
+3.2 Perceptual Hash Results
+
+Among the seven classical hashing algorithms tested, perceptual hash (pHash) and difference hash (dHash) exhibited the highest robustness to content-preserving transforms. pHash achieved a mean Hamming distance of 4.62 bits (out of 64) across all transforms, corresponding to 7.2 percent bit change. dHash was comparable at 4.67 bits (7.3 percent). Average hash (aHash) performed slightly better overall at 3.59 bits (5.6 percent), though this advantage came at the cost of higher sensitivity to geometric distortions. Google PDQ, which operates on a 256-bit descriptor, recorded a mean Hamming distance of 40.47 bits (15.8 percent), making it the most sensitive of the eight algorithms tested.
+
+Content-preserving transforms such as gaussian_blur, jpeg_compression, and saturation affected all hash algorithms minimally. For example, gaussian_blur induced mean Hamming distances of only 0.09 bits for aHash, 0.29 bits for dHash, and 4.14 bits for PDQ, confirming that perceptual hashes are largely invariant to mild smoothing. JPEG compression similarly caused negligible distortion, with PDQ recording only 2.88 bits (1.1 percent) mean Hamming distance.
+
+Geometric transforms posed significantly greater challenges. Cropping (both center and random) produced the largest distortions: PDQ recorded 120.63 bits (47.1 percent) mean Hamming distance for crop_center, while aHash and dHash recorded 10.52 (16.4 percent) and 13.59 (21.2 percent) respectively. Rotation showed a similar pattern, with PDQ at 95.10 bits (37.1 percent) and aHash at 8.32 bits (13.0 percent).
+
+A notable finding was the behaviour under letterbox padding. While PDQ remained highly sensitive (95.58 bits, 37.3 percent), the classical algorithms showed moderate distortion: aHash at 9.03 bits (14.1 percent), dHash at 9.79 bits (15.3 percent), and pHash at 9.40 bits (14.7 percent). Critically, for letterbox, the aHash distortion was lower than that of PDQ by a factor of 2.6, indicating that simpler hash representations can outperform more sophisticated descriptors under aspect-ratio-preserving padding. This finding is consistent with the observation reported by McKeown and Buchanan that average hashing can be unexpectedly robust to spatially uniform transforms that do not alter local pixel intensity relationships.
+
+3.3 TrustMark Results
+
+TrustMark demonstrated strong robustness against content-preserving transforms, with mean bit accuracy exceeding 0.96 for brightness (0.9687), contrast (0.9689), gaussian_blur (0.9696), saturation (0.9929), and vibrancy (0.9663). Full message recovery (decode_present = True) was achieved for 83 to 97 percent of images under these transforms. Scaling also preserved the watermark almost perfectly, with 0.9946 mean bit accuracy and a 99 percent decode rate.
+
+JPEG compression degraded TrustMark performance moderately, reducing mean bit accuracy to 0.9028 with a 64 percent decode rate. Salt-and-pepper noise proved more damaging, reducing bit accuracy to 0.8605 and decode rate to 32 percent, reflecting the vulnerability of deep-learning watermarks to high-frequency noise that disrupts learned feature representations.
+
+Geometric transforms severely impacted TrustMark. Rotation reduced mean bit accuracy to 0.6453 with only 26 percent decode rate. Crop_center and crop_random produced similar degradation at 0.6578 and 0.6448 bit accuracy respectively, with decode rates of 27 percent and 25 percent. Letterbox padding caused the worst performance among all transforms, with 0.5775 mean bit accuracy and only 13 percent decode rate. Overall, non-geometric transforms preserved TrustMark with a combined 77 percent decode rate and 0.9489 mean bit accuracy, while geometric transforms reduced these to 39 percent and 0.7096 respectively.
+
+These results align with findings by Jain et al., who reported that deep-learning watermarking methods exhibit strong resistance to signal-level distortions but degrade substantially under spatial geometric attacks that alter pixel coordinates.
+
+3.4 LSB and DCT Baseline Results
+
+LSB steganography was overwhelmingly fragile. Across all transforms (excluding the untransformed baseline), mean bit accuracy was only 0.5949, barely above the 0.50 random-chance threshold, and the overall decode rate was just 6 percent. The only transform under which LSB maintained reasonable fidelity was salt-and-pepper noise (0.9680 bit accuracy, 51 percent decode rate), likely because the noise selectively modifies LSBs in a pattern partially correlated with the embedded message.
+
+DCT steganography showed improved robustness compared to LSB but remained fundamentally fragile against geometric attacks. Mean bit accuracy across all transforms was 0.7134 with a 14 percent decode rate. DCT preserved the watermark reasonably well under brightness (0.8526, 24 percent decode), contrast (0.8584, 26 percent), gaussian_blur (0.8098, 22 percent), jpeg_compression (0.8176, 23 percent), saturation (0.8861, 31 percent), and vibrancy (0.8779, 28 percent). However, rotation (0.5487, 0 percent), crop_center (0.5032, 0 percent), crop_random (0.5016, 0 percent), and scaling (0.5054, 0 percent) all reduced DCT to near-random performance.
+
+These findings are consistent with Mareen et al., who demonstrated that spatial-domain steganographic methods are inherently fragile to geometric transforms that disrupt the precise pixel locations used for embedding.
+
+3.5 Ensemble Analysis
+
+The ensemble decision matrix combined hash verification with watermark extraction to provide a two-layer authentication framework. For each of the 80 (transform, intensity) conditions tested, TrustMark was selected as the primary method in all cases, while perceptual hashing served as the fallback verifier. LSB was the sole method failing under 17 of the 80 conditions (75 percent pass rate), and DCT failed under 7 conditions (91.2 percent pass rate).
+
+Of the 80 test conditions, 56 (70 percent) yielded all four methods passing, 21 conditions (26.3 percent) had three of four methods passing, and only 3 conditions (3.75 percent) had two methods passing. The conditions with only two passing methods corresponded to high-intensity geometric distortions (crop_random at maximum intensity) where both LSB and DCT failed simultaneously. No condition resulted in complete failure of all four methods, confirming that at least one method in the ensemble was always recoverable.
+
+3.6 Comparison with Literature
+
+The robustness hierarchy observed in this study (TrustMark greater than perceptual hash greater than DCT greater than LSB) is broadly consistent with the literature. McKeown and Buchanan demonstrated that perceptual hashing provides reliable content identification for moderate image distortions, which is confirmed here by the sub-8 percent mean bit change across most content-preserving transforms. Jain et al. showed that deep-learning watermarking methods such as TrustMark achieve superior robustness against signal-level attacks compared to classical approaches, a finding supported by TrustMark's 94.89 percent mean bit accuracy under non-geometric transforms versus DCT's 83.43 percent for the same conditions. Mareen et al. established that spatial and frequency-domain steganographic methods are vulnerable to geometric distortions, which is precisely the pattern observed here where both LSB and DCT failed under rotation, cropping, and scaling.
+
+The finding that aHash outperforms PDQ under letterbox padding is a novel observation not previously reported in the literature and suggests that lightweight hash algorithms may be preferable for specific aspect-ratio-changing transforms.
+
+3.7 Limitations
+
+Several limitations should be noted. First, the evaluation was conducted on 100 COCO images, which are predominantly natural photographs; performance on other domains (e.g., medical imaging, synthetic media, or text-heavy images) remains to be validated. Second, only a single TrustMark model was tested; alternative architectures such as HiDDeN or RivaGAN may exhibit different robustness profiles. Third, the current study evaluates transforms independently; cascaded or adaptive attacks (e.g., simultaneous rotation and compression) were not considered. Finally, message payload sizes were fixed across all methods; varying payload lengths could affect the robustness-fidelity trade-off differently for each pipeline.

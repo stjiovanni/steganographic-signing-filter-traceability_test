@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -6,59 +6,56 @@
   <title>Watermark Robustness Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,100..900;1,100..900&family=Libre+Franklin:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header>
     <h1>Watermark Robustness Dashboard</h1>
-    <nav id="tabs" role="tablist" aria-label="Dashboard sections">
-      <button class="tab active" role="tab" id="tab-btn-overview" data-tab="overview" aria-selected="true" aria-controls="tab-overview" tabindex="0">Overview</button>
-      <button class="tab" role="tab" id="tab-btn-per-transform" data-tab="per-transform" aria-selected="false" aria-controls="tab-per-transform" tabindex="-1">Per-Transform</button>
-      <button class="tab" role="tab" id="tab-btn-ensemble" data-tab="ensemble" aria-selected="false" aria-controls="tab-ensemble" tabindex="-1">Ensemble Matrix</button>
-      <button class="tab" role="tab" id="tab-btn-per-image" data-tab="per-image" aria-selected="false" aria-controls="tab-per-image" tabindex="-1">Per-Image</button>
-      <button class="tab" role="tab" id="tab-btn-sign-verify" data-tab="sign-verify" aria-selected="false" aria-controls="tab-sign-verify" tabindex="-1">Sign/Verify</button>
+    <nav id="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="per-transform">Per-Transform</button>
+      <button class="tab" data-tab="ensemble">Ensemble Matrix</button>
+      <button class="tab" data-tab="per-image">Per-Image</button>
+      <button class="tab" data-tab="sign-verify">Sign/Verify</button>
     </nav>
   </header>
 
   <main>
     <!-- Overview -->
-    <section id="tab-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-overview">
+    <section id="tab-overview" class="tab-panel active">
       <div class="stats-grid" id="stats-grid"></div>
       <div class="card chart-card">
         <h2>Mean Bit Accuracy by Transform</h2>
-        <div id="overview-chart-error" class="no-data chart-error" hidden></div>
         <canvas id="overview-chart"></canvas>
       </div>
     </section>
 
     <!-- Per-Transform -->
-    <section id="tab-per-transform" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-per-transform">
+    <section id="tab-per-transform" class="tab-panel">
       <div class="controls">
         <label for="transform-select">Transform:</label>
         <select id="transform-select"></select>
       </div>
       <div class="card chart-card">
         <h2>Method Performance vs Intensity</h2>
-        <div id="transform-error" class="no-data chart-error" hidden></div>
         <canvas id="transform-chart"></canvas>
       </div>
     </section>
 
     <!-- Ensemble Matrix -->
-    <section id="tab-ensemble" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-ensemble">
+    <section id="tab-ensemble" class="tab-panel">
       <div class="card">
         <h2>Best Method per Transform &times; Intensity</h2>
         <div class="matrix-wrapper">
-          <div id="ensemble-error" class="no-data" hidden></div>
           <table id="ensemble-table"></table>
         </div>
       </div>
     </section>
 
     <!-- Per-Image -->
-    <section id="tab-per-image" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-per-image">
+    <section id="tab-per-image" class="tab-panel">
       <div class="controls">
         <label for="image-select">Image:</label>
         <select id="image-select"></select>
@@ -67,7 +64,7 @@
     </section>
 
     <!-- Sign / Verify -->
-    <section id="tab-sign-verify" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-sign-verify">
+    <section id="tab-sign-verify" class="tab-panel">
       <div class="sv-grid">
         <div class="sv-left">
           <div class="card">
@@ -83,11 +80,10 @@
 
             <label class="sv-label" for="sv-filter-select">Filter</label>
             <select id="sv-filter-select" class="sv-select"></select>
-            <div id="sv-transforms-error" class="sv-error" hidden></div>
 
             <label class="sv-label" for="sv-intensity-input">Intensity</label>
             <div class="sv-intensity-row">
-              <input type="range" id="sv-intensity-slider" min="0" max="100" value="50" class="sv-slider" aria-label="Intensity slider">
+              <input type="range" id="sv-intensity-slider" min="0" max="100" value="50" class="sv-slider">
               <input type="text" id="sv-intensity-input" class="sv-intensity-text" value="">
             </div>
             <button id="sv-filter-btn" class="sv-btn" disabled>Apply Filter</button>
@@ -135,10 +131,11 @@
           </div>
         </div>
       </div>
-      <div id="sv-status" class="sv-status" role="status" aria-live="polite"></div>
+      <div id="sv-status" class="sv-status"></div>
     </section>
   </main>
 
   <script src="script.js"></script>
 </body>
 </html>
+

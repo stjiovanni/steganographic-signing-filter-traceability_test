@@ -4,21 +4,22 @@
 
 TrustMark is a deep learning-based image watermarking method.
 
-- **Repository**: https://github.com/benibaez/trustmark
+- **Repository**: https://github.com/adobe/trustmark
 - **PyPI**: https://pypi.org/project/trustmark/
 - **License**: MIT
-- **Paper**: B. B. M. B. S. TrustMark: Universal Watermarking for Arbitrary Resolution Images. (2024)
+- **Paper**: Bui, T., Agarwal, S. and Collomosse, J. (2025) 'TrustMark: Robust watermarking and watermark removal for arbitrary resolution images', IEEE International Conference on Computer Vision (ICCV).
 - **Version used**: 0.9.1
 
 ### BibTeX
 
 ```bibtex
-@misc{trustmark2024,
-  author = {Beni Baez},
-  title = {TrustMark: Universal Watermarking for Arbitrary Resolution Images},
-  year = {2024},
+@inproceedings{trustmark2025,
+  author = {Bui, Tu and Agarwal, Shruti and Collomosse, John},
+  title = {TrustMark: Robust Watermarking and Watermark Removal for Arbitrary Resolution Images},
+  booktitle = {IEEE International Conference on Computer Vision (ICCV)},
+  year = {2025},
   publisher = {GitHub},
-  howpublished = {\url{https://github.com/benibaez/trustmark}}
+  howpublished = {\url{https://github.com/adobe/trustmark}}
 }
 ```
 

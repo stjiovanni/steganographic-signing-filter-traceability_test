@@ -77,11 +77,14 @@ strong {
   --step-2: 1.563rem;
   --step-3: 1.953rem;
   --step-4: 2.441rem;
+
+  --font-heading: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+  --font-body: "Libre Franklin", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
 }
 
 body {
-  font-family: Jost, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
-  font-size: var(--font-size-base);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
   line-height: 1.5;
   letter-spacing: var(--tracking-sans);
   background: var(--bg);
@@ -98,6 +101,7 @@ header {
 }
 
 header h1 {
+  font-family: var(--font-heading);
   font-size: var(--step-2);
   font-weight: 500;
   margin-bottom: 1.5rem;
@@ -110,12 +114,12 @@ header h1 {
 }
 
 .tab {
+  font-family: var(--font-heading);
   background: transparent;
   border: none;
   color: var(--text-muted);
   padding: 0.55rem 1.1rem;
   font-size: var(--step--1);
-  font-family: inherit;
   cursor: pointer;
   border-radius: var(--radius) var(--radius) 0 0;
   transition: background 0.15s, color 0.15s;
@@ -129,6 +133,35 @@ header h1 {
 .tab.active {
   color: var(--accent);
   background: var(--card);
+}
+
+.tab:focus-visible,
+.sv-btn:focus-visible,
+.sv-file-btn:focus-visible,
+.sv-select:focus-visible,
+.sv-text-input:focus-visible,
+.sv-intensity-text:focus-visible,
+.controls select:focus-visible,
+.sv-slider:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.chart-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+}
+
+.sv-error {
+  color: #e74c3c;
+  font-size: var(--step--1);
+  margin-top: 0.4rem;
 }
 
 main {
@@ -159,6 +192,7 @@ main {
 }
 
 .stat-card .label {
+  font-family: var(--font-heading);
   font-size: var(--step--1);
   color: var(--text-muted);
   text-transform: uppercase;
@@ -188,6 +222,7 @@ main {
 }
 
 .card h2 {
+  font-family: var(--font-heading);
   font-size: var(--step-0);
   font-weight: 500;
   margin-bottom: 1.25rem;
@@ -317,6 +352,243 @@ main {
   text-align: center;
 }
 
+/* Sign / Verify Tab */
+.sv-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.sv-left .card,
+.sv-right .card {
+  margin-bottom: 0;
+}
+
+.sv-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.sv-file-btn {
+  background: var(--card);
+  color: var(--text-muted);
+  border: 1px dashed var(--card-border);
+  padding: 0.45rem 0.9rem;
+  font-size: var(--step--1);
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+
+.sv-file-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.sv-file-name {
+  font-size: var(--step--1);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sv-btn {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+  font-size: var(--step--1);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  font-weight: 500;
+}
+
+.sv-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sv-btn:not(:disabled):hover {
+  border-color: var(--accent);
+}
+
+.sv-btn.accent {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sv-btn.accent:not(:disabled):hover {
+  background: oklch(0.705 0.193 39.231 / 0.12);
+}
+
+.sv-btn.green {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.sv-btn.green:not(:disabled):hover {
+  background: oklch(0.746 0.181 152.327 / 0.12);
+}
+
+.sv-btn-row {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.sv-sep {
+  height: 1px;
+  background: var(--card-border);
+  margin: 1rem 0;
+}
+
+.sv-label {
+  display: block;
+  font-size: var(--step--1);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.3rem;
+  margin-top: 0.6rem;
+}
+
+.sv-select,
+.sv-text-input {
+  width: 100%;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.7rem;
+  font-size: var(--step--1);
+  font-family: inherit;
+  outline: none;
+}
+
+.sv-select:focus,
+.sv-text-input:focus {
+  border-color: var(--accent);
+}
+
+.sv-intensity-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.sv-slider {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.sv-intensity-text {
+  width: 60px;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.5rem;
+  font-size: var(--step--1);
+  font-family: inherit;
+  text-align: center;
+  outline: none;
+}
+
+.sv-intensity-text:focus {
+  border-color: var(--accent);
+}
+
+.sv-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+}
+
+.sv-preview-slot {
+  text-align: center;
+}
+
+.sv-preview-label {
+  font-size: var(--step--1);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.4rem;
+}
+
+.sv-preview-img {
+  width: 100%;
+  aspect-ratio: 1;
+  background: oklch(0.12 0 0);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sv-preview-img img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.sv-preview-img .sv-placeholder {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
+.sv-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.8rem;
+}
+
+.sv-result-item {
+  background: oklch(1 0 0 / 0.03);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.8rem;
+}
+
+.sv-result-item .sv-result-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.15rem;
+}
+
+.sv-result-item .sv-result-value {
+  font-size: var(--step-0);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sv-status {
+  margin-top: 0.8rem;
+  font-size: var(--step--1);
+  color: var(--text-muted);
+}
+
+.sv-status.error {
+  color: #e74c3c;
+}
+
+.sv-status.ok {
+  color: var(--green);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   header {
@@ -343,5 +615,13 @@ main {
 
   .card {
     padding: 1rem;
+  }
+
+  .sv-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sv-preview-grid {
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }
