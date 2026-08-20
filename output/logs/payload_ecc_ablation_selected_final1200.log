@@ -1,0 +1,3 @@
+DRY-RUN OK: 1 native configurations; no existing result files changed
+  bch_super_4chars: 56 ECC bits, 32 payload bits
+Wrote ablation rows to output/results/payload_ecc_ablation_selected_final1200.csv in 47094.8s

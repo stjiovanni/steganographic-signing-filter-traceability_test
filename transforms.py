@@ -4,6 +4,8 @@ Single source of truth — every script imports from here."""
 from PIL import Image, ImageFilter, ImageEnhance
 import numpy as np
 import os
+import hashlib
+import tempfile
 
 COCO_DIR = os.path.join(os.path.dirname(__file__), 'coco_val2017', 'val2017')
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'output')
@@ -28,8 +30,10 @@ ALL_TRANSFORMS = list(TRANSFORM_STEPS.keys())
 
 def make_seed(image_id, transform_name, intensity):
     """Deterministic seed for random transforms from image_id + transform + intensity."""
-    h = hash(f'{image_id}_{transform_name}_{intensity}')
-    return h & 0x7FFFFFFF
+    # Python's built-in hash is intentionally randomised between processes.
+    # SHA-256 keeps stochastic transforms reproducible across machines/runs.
+    value = f'{image_id}_{transform_name}_{intensity}'.encode('utf-8')
+    return int.from_bytes(hashlib.sha256(value).digest()[:8], 'big') & 0x7FFFFFFF
 
 
 def apply_brightness(img, intensity, rng=None):
@@ -70,12 +74,18 @@ def apply_salt_pepper_noise(img, intensity, rng=None):
 
 
 def apply_jpeg_compression(img, intensity, rng=None):
-    path = os.path.join(OUTPUT_DIR, '_tmp_jpeg.jpg')
-    img.save(path, 'JPEG', quality=int(intensity))
-    result = Image.open(path).convert('RGB')
-    if os.path.exists(path):
-        os.remove(path)
-    return result
+    # Each worker gets its own path; a fixed filename is unsafe with parallel jobs.
+    fd, path = tempfile.mkstemp(prefix='_tmp_jpeg_', suffix='.jpg', dir=OUTPUT_DIR)
+    os.close(fd)
+    try:
+        img.save(path, 'JPEG', quality=int(intensity))
+        with Image.open(path) as compressed:
+            return compressed.convert('RGB')
+    finally:
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
 
 
 def apply_rotation(img, intensity, rng=None):

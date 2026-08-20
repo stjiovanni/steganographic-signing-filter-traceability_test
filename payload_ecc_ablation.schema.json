@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrustMark payload/ECC ablation CSV row",
+  "description": "Schema for payload_ecc_ablation.py output. Null metrics mean decoding failed and are never imputed.",
+  "type": "object",
+  "required": [
+    "experiment", "config_id", "image_id", "ecc_mode", "payload",
+    "transform_name", "status", "raw_packet_bits", "raw_bit_accuracy",
+    "corrected_payload", "corrected_decode_present", "corrected_exact"
+  ],
+  "properties": {
+    "experiment": {"const": "payload_ecc_ablation"},
+    "config_id": {"type": "string"},
+    "image_id": {"type": "string"},
+    "filename": {"type": "string"},
+    "ecc_mode": {"enum": ["BCH_SUPER", "BCH_5", "BCH_4", "BCH_3"]},
+    "ecc_encoding_type": {"type": "integer", "minimum": 0, "maximum": 3},
+    "model_type": {"enum": ["C", "Q", "B", "P"]},
+    "secret_len": {"const": 100},
+    "payload": {"type": "string", "minLength": 1},
+    "payload_chars": {"type": "integer", "minimum": 1},
+    "payload_data_bits": {"type": "integer", "minimum": 1},
+    "transform_name": {"type": "string"},
+    "intensity_value": {"type": "string"},
+    "pipeline_version": {"type": "string"},
+    "status": {"enum": ["ok", "error"]},
+    "error": {"type": "string"},
+    "encode_mse": {"type": ["number", "null"]},
+    "encode_psnr": {"type": ["number", "null"]},
+    "raw_packet_bits": {"const": 100},
+    "raw_bit_accuracy": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "corrected_payload": {"type": ["string", "null"]},
+    "corrected_decode_present": {"type": ["boolean", "null"]},
+    "corrected_schema": {"type": ["integer", "null"]},
+    "corrected_exact": {"type": ["boolean", "null"]},
+    "width": {"type": ["integer", "null"]},
+    "height": {"type": ["integer", "null"]},
+    "aspect_ratio": {"type": ["number", "null"]},
+    "row_key": {"type": "string"}
+  }
+}

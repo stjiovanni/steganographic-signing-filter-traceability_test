@@ -7,7 +7,7 @@ from torchvision import transforms as tv_transforms
 from trustmark import TrustMark
 import transforms
 
-PIPELINE_VERSION = 'v2.0'
+PIPELINE_VERSION = 'v2.1-reproducible'
 TM_PAYLOAD = 'TM00001'
 OUTPUT_DIR = transforms.OUTPUT_DIR
 
@@ -43,6 +43,33 @@ def decode_and_accuracy(image, tm, expected_packet):
     return secret_pred, detected, version, bit_acc
 
 
+@torch.no_grad()
+def decode_batch_and_accuracy(images, tm, expected_packet):
+    """Decode a batch of images, retaining the existing per-image ECC semantics."""
+    tensors = []
+    for image in images:
+        img_rgb = image.convert('RGB')
+        img_resized = img_rgb.resize(
+            (tm.model_resolution_dec, tm.model_resolution_dec), Image.BILINEAR
+        )
+        tensors.append(
+            tv_transforms.ToTensor()(img_resized).unsqueeze(0).to(tm.decoder.device)
+            * 2.0 - 1.0
+        )
+
+    stego = torch.cat(tensors, dim=0)
+    raw_bits = (tm.decoder.decoder(stego) > 0).cpu().numpy()
+    results = []
+    for image_bits in raw_bits:
+        received = image_bits.astype(np.int32)
+        bit_acc = float(np.mean(expected_packet == received))
+        secret_pred, detected, version = tm.ecc.decode_bitstream(
+            image_bits[np.newaxis, ...], 'text'
+        )[0]
+        results.append((secret_pred, detected, version, bit_acc))
+    return results
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input-dir', default=transforms.COCO_DIR)
@@ -50,7 +77,12 @@ def main():
     parser.add_argument('--image-count', type=int, default=100)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--save-image-count', type=int, default=10)
+    parser.add_argument('--decode-batch-size', type=int, default=64)
     args = parser.parse_args()
+
+    if args.decode_batch_size < 1:
+        parser.error('--decode-batch-size must be at least 1')
 
     random.seed(args.seed)
 
@@ -88,6 +120,28 @@ def main():
 
     t_start = time.time()
     skipped = 0
+
+    def write_decode_jobs(jobs):
+        """Run pending decoder jobs in bounded batches and write them in order."""
+        for start in range(0, len(jobs), args.decode_batch_size):
+            batch = jobs[start:start + args.decode_batch_size]
+            try:
+                results = decode_batch_and_accuracy(
+                    [job[0] for job in batch], tm, expected_packet
+                )
+            except Exception:
+                # Keep a failed batch from changing the old per-row error behavior.
+                results = []
+                for image, _ in batch:
+                    try:
+                        results.append(decode_and_accuracy(image, tm, expected_packet))
+                    except Exception:
+                        results.append((None, False, None, 0.0))
+
+            for (_, row), result in zip(batch, results):
+                row['decode_secret'], row['decode_present'], row['decode_schema'], row['bit_accuracy'] = result
+                writer.writerow(row)
+
     for idx, img_path in enumerate(image_files):
         fname = os.path.basename(img_path)
         image_id = os.path.splitext(fname)[0]
@@ -109,29 +163,26 @@ def main():
             print(f'ERROR: TrustMark encode failed for {fname}: {e}', file=sys.stderr)
             continue
 
-        wm_path = os.path.join(OUTPUT_DIR, 'trustmark_watermarked', fname)
-        img_wm.save(wm_path)
+        if idx < args.save_image_count:
+            wm_path = os.path.join(OUTPUT_DIR, 'trustmark_watermarked', fname)
+            img_wm.save(wm_path)
 
         enc_mse, enc_psnr = mse_psnr(img_orig, img_wm)
+
+        decode_jobs = []
 
         # Encode row ('none' transform)
         row_key = f'{image_id}_none_'
         if row_key not in done_ids:
-            try:
-                secret, present, schema, ba = decode_and_accuracy(img_wm, tm, expected_packet)
-            except Exception:
-                secret, present, schema, ba = None, False, None, 0.0
-
-            enc_row = {
+            decode_jobs.append((img_wm, {
                 'image_id': image_id, 'filename': fname, 'transform_name': 'none',
                 'intensity_value': '', 'pipeline_version': PIPELINE_VERSION,
                 'encode_mse': enc_mse, 'encode_psnr': enc_psnr,
-                'decode_secret': secret, 'decode_present': present, 'decode_schema': schema,
-                'bit_accuracy': ba,
+                'decode_secret': None, 'decode_present': None, 'decode_schema': None,
+                'bit_accuracy': None,
                 'width': w, 'height': h, 'aspect_ratio': aspect,
                 'auto_cropped': auto_cropped,
-            }
-            writer.writerow(enc_row)
+            }))
         else:
             skipped += 1
 
@@ -153,25 +204,21 @@ def main():
                 tw, th = img_tf.size
                 t_aspect = round(tw / th if th > 0 else 0, 6)
 
-                try:
-                    t_secret, t_present, t_schema, t_ba = decode_and_accuracy(img_tf, tm, expected_packet)
-                except Exception as e:
-                    print(f'ERROR: decode after {tf}={intensity} on {fname}: {e}', file=sys.stderr)
-                    t_secret, t_present, t_schema, t_ba = None, False, None, 0.0
-
-                row = {
+                decode_jobs.append((img_tf, {
                     'image_id': image_id, 'filename': fname,
                     'transform_name': tf, 'intensity_value': str(intensity),
                     'pipeline_version': PIPELINE_VERSION,
                     'encode_mse': enc_mse, 'encode_psnr': enc_psnr,
-                    'decode_secret': t_secret, 'decode_present': t_present,
-                    'decode_schema': t_schema, 'bit_accuracy': t_ba,
+                    'decode_secret': None, 'decode_present': None,
+                    'decode_schema': None, 'bit_accuracy': None,
                     'width': tw, 'height': th, 'aspect_ratio': t_aspect,
                     'auto_cropped': auto_cropped,
-                }
-                writer.writerow(row)
+                }))
+
+        write_decode_jobs(decode_jobs)
 
         if (idx + 1) % 10 == 0:
+            f_out.flush()
             elapsed = time.time() - t_start
             processed = idx + 1
             print(f'  Processed {processed}/{len(image_files)} images ({elapsed:.1f}s)', flush=True)

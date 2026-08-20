@@ -1,0 +1,14 @@
+DRY-RUN OK: 12 native configurations; no existing result files changed
+  bch_super_1chars: 56 ECC bits, 8 payload bits
+  bch_super_4chars: 56 ECC bits, 32 payload bits
+  bch_super_5chars: 56 ECC bits, 40 payload bits
+  bch_5_1chars: 35 ECC bits, 8 payload bits
+  bch_5_4chars: 35 ECC bits, 32 payload bits
+  bch_5_5chars: 35 ECC bits, 40 payload bits
+  bch_4_1chars: 28 ECC bits, 8 payload bits
+  bch_4_4chars: 28 ECC bits, 32 payload bits
+  bch_4_5chars: 28 ECC bits, 40 payload bits
+  bch_3_1chars: 21 ECC bits, 8 payload bits
+  bch_3_4chars: 21 ECC bits, 32 payload bits
+  bch_3_5chars: 21 ECC bits, 40 payload bits
+Wrote ablation rows to output/results/payload_ecc_ablation_dev100.csv in 11660.7s

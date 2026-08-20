@@ -1,6 +1,6 @@
 """Threshold analysis (Task 7) and ensemble overlap analysis (Task 8)."""
 
-import csv, os
+import csv, os, argparse
 from collections import defaultdict
 import numpy as np
 
@@ -24,7 +24,12 @@ WM_FAIL10 = 0.1     # bit_accuracy below 10%
 
 
 def load_csv(fn):
-    with open(os.path.join(RESULTS_DIR, fn)) as f:
+    path = os.path.join(RESULTS_DIR, fn)
+    if not os.path.exists(path) and os.path.exists(path + '.gz'):
+        path += '.gz'
+    import gzip
+    stream = gzip.open(path, 'rt') if path.endswith('.gz') else open(path)
+    with stream as f:
         return list(csv.DictReader(f))
 
 
@@ -135,7 +140,8 @@ def run_analysis():
     lines = []
     lines.append('# Per-Transform Threshold Analysis')
     lines.append('')
-    lines.append('Thresholds for each method across all 100 images.')
+    n_images = len({r['image_id'] for r in hash_rows})
+    lines.append(f'Thresholds for each method across all {n_images} images.')
     lines.append('Hash threshold: mean bit-error fraction > 0.5 (50% bit error) / > 0.9 (90% bit error).')
     lines.append('  Bit-error fraction = Hamming distance / hash bit length (64 bits for all algorithms except PDQ = 256).')
     lines.append('  "Hash (mean)" = pooled mean over all 8 hash algorithms and all images (ensemble average).')
@@ -178,7 +184,7 @@ def run_analysis():
     lines.append('')
     lines.append('# Ensemble Overlap Analysis')
     lines.append('')
-    lines.append('For each (transform, intensity) pair across all 100 images:')
+    lines.append(f'For each (transform, intensity) pair across all {n_images} images:')
     lines.append('- Hash success: worst-algorithm mean bit-error fraction < 0.5 (weakest link; Hamming')
     lines.append('  normalized by hash bit length). The pooled mean stays low because 7 of 8 hashes are')
     lines.append('  64-bit and robust, masking PDQ failures.')
@@ -256,7 +262,7 @@ def run_analysis():
             })
 
     # Write ensemble decision matrix CSV
-    csv_path = os.path.join(OUTPUT_DIR, 'results', 'ensemble_decision_matrix.csv')
+    csv_path = os.path.join(RESULTS_DIR, 'ensemble_decision_matrix.csv')
     with open(csv_path, 'w', newline='', encoding='utf-8') as f:
         fieldnames = ['transform_name', 'intensity_value', 'best_method', 'fallback_method',
                       'hash_bit_error', 'hash_worst_bit_error', 'hash_ok',
@@ -267,7 +273,7 @@ def run_analysis():
         w.writerows(decision_rows)
 
     # Write summary markdown
-    md_path = os.path.join(OUTPUT_DIR, 'threshold_analysis.md')
+    md_path = os.path.join(RESULTS_DIR, 'threshold_analysis.md')
     with open(md_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
 
@@ -276,4 +282,10 @@ def run_analysis():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--results-dir', default=RESULTS_DIR)
+    parser.add_argument('--output-dir', default=OUTPUT_DIR)
+    args = parser.parse_args()
+    RESULTS_DIR = args.results_dir
+    OUTPUT_DIR = args.output_dir
     run_analysis()

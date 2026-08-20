@@ -1,0 +1,103 @@
+
+[2026-08-10T15:44:53.646662+00:00] 1,200-image run started
+
+$ C:\Users\hp\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe transform_hash_robustness.py --image-count 1200 --seed 42 --resume
+Found 1200 images, processing up to 1200
+Resume mode: 64000 existing rows, skipping them
+  Processed 25/1200 images (165.5s)
+  Processed 50/1200 images (337.8s)
+  Processed 75/1200 images (495.0s)
+  Processed 100/1200 images (686.6s)
+  Processed 125/1200 images (891.9s)
+  Processed 150/1200 images (1046.3s)
+  Processed 175/1200 images (1217.7s)
+  Processed 200/1200 images (1388.3s)
+  Processed 225/1200 images (1561.3s)
+  Processed 250/1200 images (1725.6s)
+
+[2026-08-10T16:15:46.971351+00:00] 1,200-image run started
+
+$ C:\Users\hp\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe transform_hash_robustness.py --image-count 1200 --seed 42 --output-csv C:\Users\hp\Documents\porfolio\msc_proj\output\results\final1200\hash_robustness_results.csv --resume
+Found 1200 images, processing up to 1200
+  Processed 25/1200 images (180.4s)
+  Processed 50/1200 images (347.5s)
+  Processed 75/1200 images (486.2s)
+  Processed 100/1200 images (665.8s)
+  Processed 125/1200 images (854.1s)
+  Processed 150/1200 images (1023.9s)
+  Processed 175/1200 images (1211.1s)
+  Processed 200/1200 images (1383.6s)
+  Processed 225/1200 images (1537.3s)
+
+[2026-08-10T16:44:32.515873+00:00] 1,200-image run started
+
+$ C:\Users\hp\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe experiment_manifest.py --input-dir C:\Users\hp\Documents\porfolio\msc_proj\coco_val2017\val2017 --image-count 1200 --output C:\Users\hp\Documents\porfolio\msc_proj\output\results\final1200\image_manifest.json
+Wrote 1200 image records to C:\Users\hp\Documents\porfolio\msc_proj\output\results\final1200\image_manifest.json
+
+$ C:\Users\hp\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe transform_hash_robustness.py --image-count 1200 --seed 42 --output-csv C:\Users\hp\Documents\porfolio\msc_proj\output\results\final1200\hash_robustness_results.csv.gz --resume
+Found 1200 images, processing up to 1200
+  Processed 25/1200 images (186.2s)
+  Processed 50/1200 images (345.4s)
+  Processed 75/1200 images (507.7s)
+  Processed 100/1200 images (714.9s)
+  Processed 125/1200 images (876.6s)
+  Processed 150/1200 images (1029.8s)
+  Processed 175/1200 images (1183.3s)
+  Processed 200/1200 images (1325.5s)
+  Processed 225/1200 images (1473.7s)
+  Processed 250/1200 images (1726.3s)
+  Processed 275/1200 images (1890.6s)
+  Processed 300/1200 images (2027.1s)
+  Processed 325/1200 images (2162.4s)
+  Processed 350/1200 images (2290.8s)
+  Processed 375/1200 images (2426.9s)
+  Processed 400/1200 images (2552.1s)
+  Processed 425/1200 images (2667.0s)
+  Processed 450/1200 images (2788.8s)
+  Processed 475/1200 images (2895.6s)
+  Processed 500/1200 images (3019.0s)
+  Processed 525/1200 images (3131.8s)
+  Processed 550/1200 images (3241.1s)
+  Processed 575/1200 images (3354.3s)
+  Processed 600/1200 images (3470.2s)
+  Processed 625/1200 images (3601.3s)
+  Processed 650/1200 images (3751.1s)
+  Processed 675/1200 images (3889.6s)
+  Processed 700/1200 images (4036.6s)
+  Processed 725/1200 images (4183.6s)
+  Processed 750/1200 images (4318.3s)
+  Processed 775/1200 images (4464.5s)
+  Processed 800/1200 images (4616.4s)
+  Processed 825/1200 images (4747.7s)
+  Processed 850/1200 images (4880.5s)
+  Processed 875/1200 images (5016.8s)
+  Processed 900/1200 images (5151.3s)
+  Processed 925/1200 images (5297.6s)
+  Processed 950/1200 images (5430.4s)
+  Processed 975/1200 images (5563.9s)
+  Processed 1000/1200 images (5691.7s)
+  Processed 1025/1200 images (5827.0s)
+  Processed 1050/1200 images (5959.0s)
+  Processed 1075/1200 images (6088.2s)
+  Processed 1100/1200 images (6224.1s)
+  Processed 1125/1200 images (6366.0s)
+  Processed 1150/1200 images (6502.4s)
+  Processed 1175/1200 images (6625.6s)
+  Processed 1200/1200 images (6739.6s)
+Done. 768000 rows written to C:\Users\hp\Documents\porfolio\msc_proj\output\results\final1200\hash_robustness_results.csv.gz
+Total time: 6739.6s
+Validation: 768000 total rows, 1200 unique image_ids written
+
+$ C:\Users\hp\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe trustmark_robustness.py --image-count 1200 --seed 42 --output-csv C:\Users\hp\Documents\porfolio\msc_proj\output\results\final1200\trustmark_robustness_results.csv --resume
+Found 1200 images, processing up to 1200
+Loading TrustMark model_type=Q...
+TrustMark model loaded. Payload encoded to 100-bit packet.
+  Processed 10/1200 images (230.0s)
+  Processed 20/1200 images (456.5s)
+  Processed 30/1200 images (681.3s)
+  Processed 40/1200 images (911.5s)
+  Processed 50/1200 images (1141.9s)
+  Processed 60/1200 images (1366.9s)
+  Processed 70/1200 images (1593.7s)
+  Processed 80/1200 images (1820.3s)
+  Processed 90/1200 images (2048.2s)

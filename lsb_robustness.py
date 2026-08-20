@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np
 import transforms
 
-PIPELINE_VERSION = 'v2.0'
+PIPELINE_VERSION = 'v2.1-reproducible'
 LSB_PAYLOAD = 'LSB0001'
 OUTPUT_DIR = transforms.OUTPUT_DIR
 
@@ -63,6 +63,7 @@ def main():
     parser.add_argument('--image-count', type=int, default=100)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--save-image-count', type=int, default=10)
     args = parser.parse_args()
 
     random.seed(args.seed)
@@ -118,8 +119,9 @@ def main():
             print(f'ERROR: LSB encode failed for {fname}: {e}', file=sys.stderr)
             continue
 
-        wm_path = os.path.join(OUTPUT_DIR, 'lsb_watermarked', fname)
-        img_wm.save(wm_path)
+        if idx < args.save_image_count:
+            wm_path = os.path.join(OUTPUT_DIR, 'lsb_watermarked', fname)
+            img_wm.save(wm_path)
 
         enc_mse, enc_psnr = mse_psnr(img_orig, img_wm)
 
@@ -176,6 +178,7 @@ def main():
                 writer.writerow(row)
 
         if (idx + 1) % 25 == 0:
+            f_out.flush()
             elapsed = time.time() - t_start
             processed = idx + 1
             print(f'  Processed {processed}/{len(image_files)} images ({elapsed:.1f}s)', flush=True)

@@ -1,12 +1,12 @@
 # Robustness Benchmark — Perceptual Hashing, Watermarking, and Ensemble Analysis
 
-MSc dissertation project comparing robustness of perceptual hashing (pHash, dHash, aHash, wHash, colorHash, PDQ), neural watermarking (TrustMark), and classical watermarking baselines (LSB, DCT) under graduated image transforms.
+MSc dissertation project evaluating complementary verification signals: perceptual hashing (pHash, dHash, aHash, wHash, colorHash, PDQ), neural watermarking (TrustMark), and classical watermarking baselines (LSB, DCT) under graduated image transforms. The project does not treat any one signal as proof of authenticity.
 
 ## Pipeline Scripts
 
 | Script | Purpose | Produces |
 |--------|---------|----------|
-| `transform_hash_robustness.py` | Applies 14 transforms × intensity steps to clean COCO images, computes 8 perceptual hashes per transform | `output/results/hash_robustness_results.csv` |
+| `transform_hash_robustness.py` | Applies 12 transforms × 80 intensity conditions to clean COCO images, computes 8 perceptual hashes per transform | `output/results/hash_robustness_results.csv` |
 | `trustmark_robustness.py` | Embeds "TM00001" via TrustMark, applies same transforms, decodes post-transform | `output/results/trustmark_robustness_results.csv` |
 | `lsb_robustness.py` | Embeds "LSB0001" in LSB plane, applies same transforms, recovers payload | `output/results/lsb_robustness_results.csv` |
 | `dct_robustness.py` | Embeds payload in mid-frequency DCT coefficients, applies same transforms, recovers | `output/results/dct_robustness_results.csv` |
@@ -14,13 +14,19 @@ MSc dissertation project comparing robustness of perceptual hashing (pHash, dHas
 | `dct_robustness.py` | Embeds payload in mid-frequency DCT coefficients (differential encoding), applies transforms, recovers | `output/results/dct_robustness_results.csv` |
 | `ensemble_analysis.py` | Reads all 4 result CSVs, produces threshold analysis + decision matrix | `output/threshold_analysis.md`, `output/results/ensemble_decision_matrix.csv` |
 | `verify_results.py` | Reads hash CSV and prints mean Hamming distance per transform per hash type | — |
+| `experiment_manifest.py` | Records selected image IDs, dimensions, and SHA-256 checksums | `output/results/image_manifest.json` |
+| `validate_experiment.py` | Rejects incomplete or duplicated result coverage before analysis | — |
+| `run_1200_experiment.py` | Runs the complete 1,200-image benchmark serially with a log and resume support | `output/logs/run_1200_experiment.log` |
+| `generate_fpr_evidence.py` | Creates workbook sheets for results, Gantt evidence, risks, and objective mapping | `FPR_Evidence.xlsx` |
+| `generate_figures.py` | Regenerates figures from the current CSVs and sample size | `output/figures/fpr_method_comparison.png` |
+| `generate_improvement_comparison.py` | Compares the validated 100-image pilot with the validated 1,200-image final run and records implemented versus proposed improvements | `FPR_Improvement_Comparison.xlsx`, `output/figures/fpr_pilot_final_comparison.png` |
 | `letterbox_hash_pipeline.py` | Earlier experiment: letterbox fill-color ablation (black vs grey fill) over 20 images | `output/hash_robustness_results_black_fill.csv`, `output/hash_robustness_results_grey_fill.csv` |
 
 ## Shared Modules
 
 | Module | Purpose |
 |--------|---------|
-| `transforms.py` | Single source of truth for all 14 transform definitions and their intensity steps |
+| `transforms.py` | Single source of truth for all 12 transform definitions, intensity steps, and stable seeds |
 
 ## Output CSVs — current results
 
@@ -52,10 +58,19 @@ MSc dissertation project comparing robustness of perceptual hashing (pHash, dHas
 | DCT baseline | Done |
 | Threshold analysis (per-transform intensity thresholds for <50% / <10% decode) | Done |
 | Ensemble overlap analysis (decision matrix) | Done |
+| Payload/ECC ablation (12-config dev sweep; selected config at 1,200; ensemble-aware rescoring) | Done |
 
 ## Dataset
 
-MS-COCO 2017 validation split: 5000 images in `coco_val2017/val2017/`. All pipelines operate on the first N images (default 100).
+MS-COCO 2017 validation split: 5000 images in `coco_val2017/val2017/`. The benchmark selection is the lexicographically first N JPG files, recorded in `output/results/image_manifest.json`. The default remains 100 for a quick pilot; the final run is configured for 1,200.
+
+## Final evidence
+
+The validated final evidence is under `output/results/final1200/` and contains 1,200-image hash, TrustMark, LSB and DCT outputs. Run `python validate_experiment.py --image-count 1200 --results-dir output/results/final1200` before regenerating report artefacts. The maintained FPR source is `output/FPR_v1.1.md`; the matching editable document is `24163800_Opaleye_Toluwalope_FPR_v1.1.docx`.
+
+The payload/error-correction ablation is recorded under `output/results/`: the 12-config development sweep (`payload_ecc_ablation_dev100.csv`, selection in `payload_ecc_dev_selection.md`), the validated 1,200-image selected configuration (`payload_ecc_ablation_selected_final1200.csv`), and the ensemble-aware rescoring (`ensemble_aware_payload_dev100.md`, `ensemble_aware_payload_final1200.md`).
+
+The dashboard reads `output/results` (the historical 100-image files) by default; set `CSV_DIR=output/results/final1200` to display the validated final evidence. This default is documented in the FPR (Section 4.1).
 
 ## Running
 
@@ -77,4 +92,10 @@ $env:PYTHONUTF8="1"; python ensemble_analysis.py
 
 # Verify
 $env:PYTHONUTF8="1"; python verify_results.py
+
+# Final-run preparation and validation
+python experiment_manifest.py --input-dir coco_val2017/val2017 --image-count 1200
+python run_1200_experiment.py
+python generate_fpr_evidence.py
+python generate_figures.py
 ```
