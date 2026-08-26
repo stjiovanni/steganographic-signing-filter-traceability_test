@@ -6,6 +6,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 BASE = "http://127.0.0.1:8000"
 endpoints = [
+    ("GET", "/api/dataset"),
     ("GET", "/api/summary"),
     ("GET", "/api/transforms"),
     ("GET", "/api/trustmark/by_transform?agg=mean"),

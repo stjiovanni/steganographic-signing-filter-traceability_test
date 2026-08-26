@@ -1,0 +1,228 @@
+{
+    "transforms":  [
+                       "brightness",
+                       "contrast",
+                       "crop_center",
+                       "crop_random",
+                       "gaussian_blur",
+                       "jpeg_compression",
+                       "letterbox",
+                       "rotation",
+                       "salt_pepper_noise",
+                       "saturation",
+                       "scaling",
+                       "vibrancy"
+                   ],
+    "intensities":  {
+                        "brightness":  [
+                                           0.5,
+                                           0.7,
+                                           0.85,
+                                           1.15,
+                                           1.5,
+                                           2.0
+                                       ],
+                        "contrast":  [
+                                         0.5,
+                                         0.7,
+                                         0.85,
+                                         1.15,
+                                         1.5,
+                                         2.0
+                                     ],
+                        "crop_center":  [
+                                            0.1,
+                                            0.2,
+                                            0.3,
+                                            0.4,
+                                            0.5,
+                                            0.6,
+                                            0.7,
+                                            0.8
+                                        ],
+                        "crop_random":  [
+                                            0.1,
+                                            0.2,
+                                            0.3,
+                                            0.4,
+                                            0.5,
+                                            0.6,
+                                            0.7,
+                                            0.8
+                                        ],
+                        "gaussian_blur":  [
+                                              0.5,
+                                              1.0,
+                                              1.5,
+                                              2.0,
+                                              3.0,
+                                              5.0
+                                          ],
+                        "jpeg_compression":  [
+                                                 5.0,
+                                                 10.0,
+                                                 20.0,
+                                                 35.0,
+                                                 50.0,
+                                                 65.0,
+                                                 80.0,
+                                                 95.0
+                                             ],
+                        "letterbox":  [
+                                          "black",
+                                          "grey"
+                                      ],
+                        "rotation":  [
+                                         1.0,
+                                         2.0,
+                                         5.0,
+                                         10.0,
+                                         20.0,
+                                         45.0,
+                                         70.0,
+                                         90.0
+                                     ],
+                        "salt_pepper_noise":  [
+                                                  0.01,
+                                                  0.02,
+                                                  0.04,
+                                                  0.06,
+                                                  0.1,
+                                                  0.15
+                                              ],
+                        "saturation":  [
+                                           0.2,
+                                           0.43,
+                                           0.66,
+                                           0.89,
+                                           1.11,
+                                           1.34,
+                                           1.57,
+                                           1.8
+                                       ],
+                        "scaling":  [
+                                        0.25,
+                                        0.5,
+                                        0.75,
+                                        1.5,
+                                        2.0,
+                                        3.0
+                                    ],
+                        "vibrancy":  [
+                                         0.2,
+                                         0.43,
+                                         0.66,
+                                         0.89,
+                                         1.11,
+                                         1.34,
+                                         1.57,
+                                         1.8
+                                     ]
+                    },
+    "best":  {
+                 "brightness":  {
+                                    "0.5":  "trustmark",
+                                    "0.7":  "trustmark",
+                                    "0.85":  "trustmark",
+                                    "1.15":  "trustmark",
+                                    "1.5":  "trustmark",
+                                    "2.0":  "trustmark"
+                                },
+                 "contrast":  {
+                                  "0.5":  "trustmark",
+                                  "0.7":  "trustmark",
+                                  "0.85":  "trustmark",
+                                  "1.15":  "trustmark",
+                                  "1.5":  "hash",
+                                  "2.0":  "hash"
+                              },
+                 "saturation":  {
+                                    "0.2":  "trustmark",
+                                    "0.43":  "trustmark",
+                                    "0.66":  "trustmark",
+                                    "0.89":  "trustmark",
+                                    "1.11":  "trustmark",
+                                    "1.34":  "trustmark",
+                                    "1.57":  "trustmark",
+                                    "1.8":  "trustmark"
+                                },
+                 "vibrancy":  {
+                                  "0.2":  "trustmark",
+                                  "0.43":  "trustmark",
+                                  "0.66":  "trustmark",
+                                  "0.89":  "trustmark",
+                                  "1.11":  "trustmark",
+                                  "1.34":  "trustmark",
+                                  "1.57":  "trustmark",
+                                  "1.8":  "hash"
+                              },
+                 "gaussian_blur":  {
+                                       "0.5":  "trustmark",
+                                       "1.0":  "trustmark",
+                                       "1.5":  "trustmark",
+                                       "2.0":  "trustmark",
+                                       "3.0":  "trustmark",
+                                       "5.0":  "hash"
+                                   },
+                 "salt_pepper_noise":  {
+                                           "0.01":  "lsb",
+                                           "0.02":  "lsb",
+                                           "0.04":  "lsb",
+                                           "0.06":  "hash",
+                                           "0.1":  "hash",
+                                           "0.15":  "hash"
+                                       },
+                 "jpeg_compression":  {
+                                          "5.0":  "hash",
+                                          "10.0":  "hash",
+                                          "20.0":  "hash",
+                                          "35.0":  "hash",
+                                          "50.0":  "hash",
+                                          "65.0":  "hash",
+                                          "80.0":  "hash",
+                                          "95.0":  "trustmark"
+                                      },
+                 "rotation":  {
+                                  "1.0":  "trustmark",
+                                  "2.0":  "trustmark",
+                                  "5.0":  "hash",
+                                  "10.0":  "lsb",
+                                  "20.0":  "lsb",
+                                  "45.0":  "lsb",
+                                  "70.0":  "lsb",
+                                  "90.0":  "trustmark"
+                              },
+                 "scaling":  {
+                                 "0.25":  "trustmark",
+                                 "0.5":  "trustmark",
+                                 "0.75":  "trustmark",
+                                 "1.5":  "trustmark",
+                                 "2.0":  "trustmark",
+                                 "3.0":  "trustmark"
+                             },
+                 "crop_center":  {
+                                     "0.1":  "trustmark",
+                                     "0.2":  "trustmark",
+                                     "0.3":  "trustmark",
+                                     "0.4":  "trustmark",
+                                     "0.5":  "trustmark",
+                                     "0.6":  "trustmark",
+                                     "0.7":  "trustmark",
+                                     "0.8":  "trustmark"
+                                 },
+                 "crop_random":  {
+                                     "0.1":  "trustmark",
+                                     "0.2":  "trustmark",
+                                     "0.3":  "trustmark",
+                                     "0.4":  "trustmark",
+                                     "0.5":  "trustmark",
+                                     "0.6":  "trustmark",
+                                     "0.7":  "lsb",
+                                     "0.8":  "lsb"
+                                 },
+                 "letterbox":  {
+                                   "black":  "lsb",
+                                   "grey":  "lsb"
+                               }
+             }
+}

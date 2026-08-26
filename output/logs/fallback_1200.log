@@ -1,0 +1,16 @@
+Found 1200 images
+Resume: 650 images already complete
+TrustMark + fallback codec loaded
+  Processed 700/1200 (389s)
+  Processed 750/1200 (992s)
+  Processed 800/1200 (1424s)
+  Processed 850/1200 (1774s)
+  Processed 900/1200 (2468s)
+  Processed 950/1200 (2968s)
+  Processed 1000/1200 (3146s)
+  Processed 1050/1200 (3299s)
+  Processed 1100/1200 (3444s)
+  Processed 1150/1200 (3585s)
+  Processed 1200/1200 (3724s)
+Decoding TrustMark on combined baselines (batched)...
+Done. 550 new images -> 44550 rows in 3944s

@@ -1,24 +1,16 @@
-import os, sys, csv, math, random, argparse, time
+import os, sys, csv, random, argparse, time
 from glob import glob
-from PIL import Image, ImageFilter, ImageEnhance
+from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms as tv_transforms
 from trustmark import TrustMark
 import transforms
+from metrics import mse_psnr
 
 PIPELINE_VERSION = 'v2.1-reproducible'
 TM_PAYLOAD = 'TM00001'
 OUTPUT_DIR = transforms.OUTPUT_DIR
-
-def mse_psnr(img1, img2):
-    arr1 = np.asarray(img1).astype(np.int16)
-    arr2 = np.asarray(img2).astype(np.int16)
-    mse = np.mean(np.square(arr1 - arr2))
-    if mse == 0:
-        return 0.0, float('inf')
-    psnr = 20 * math.log10(255.0) - 10 * math.log10(mse)
-    return float(mse), float(psnr)
 
 
 def encode_payload_to_packet(tm, payload):

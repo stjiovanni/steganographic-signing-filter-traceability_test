@@ -1,0 +1,83 @@
+﻿UPLOAD
+{
+  "filename": "1250efd7fc5c.jpg",
+  "image_id": "40010b405722",
+  "path": "/api/preview/40010b405722"
+}
+TRUSTMARK_JPEG
+{
+  "intensity": "80.0",
+  "method": "trustmark",
+  "signed_id": "tmp2aicfafv",
+  "signed_preview": "/api/preview/tmp2aicfafv",
+  "transform": "jpeg_compression",
+  "transformed_id": "tmp2aicfafv_stress_usbie2iz",
+  "transformed_preview": "/api/preview/tmp2aicfafv_stress_usbie2iz",
+  "verification": {
+    "bit_accuracy": 1.0,
+    "confidence": 1.0,
+    "confidence_definition": "confidence = bit_accuracy for single methods; for hybrid, max(trustmark.bit_accuracy, fallback.bit_accuracy), capped at 0.5 when neither channel recovers. Deterministic function of measured decode metrics only - carries no identifier.",
+    "decoded_payload": "TM00001",
+    "detected": true,
+    "method": "trustmark",
+    "schema": 2
+  },
+  "verify": {
+    "bit_accuracy": 1.0,
+    "confidence": 1.0,
+    "confidence_definition": "confidence = bit_accuracy for single methods; for hybrid, max(trustmark.bit_accuracy, fallback.bit_accuracy), capped at 0.5 when neither channel recovers. Deterministic function of measured decode metrics only - carries no identifier.",
+    "decoded_payload": "TM00001",
+    "detected": true,
+    "method": "trustmark",
+    "schema": 2
+  }
+}
+HYBRID_JPEG
+{
+  "intensity": "80.0",
+  "method": "hybrid",
+  "signed_id": "tmpgcysp5ct",
+  "signed_preview": "/api/preview/tmpgcysp5ct",
+  "transform": "jpeg_compression",
+  "transformed_id": "tmpgcysp5ct_stress_ksrgamuo",
+  "transformed_preview": "/api/preview/tmpgcysp5ct_stress_ksrgamuo",
+  "verification": {
+    "confidence": 1.0,
+    "confidence_definition": "confidence = bit_accuracy for single methods; for hybrid, max(trustmark.bit_accuracy, fallback.bit_accuracy), capped at 0.5 when neither channel recovers. Deterministic function of measured decode metrics only - carries no identifier.",
+    "fallback": {
+      "bit_accuracy": 0.98,
+      "decoded_payload": "FB01",
+      "detected": true,
+      "schema": 0
+    },
+    "method": "hybrid",
+    "note": "Two-layer payload recovery = TrustMark OR fallback decode. This is payload recovery, not authentication or provenance.",
+    "recovered": true,
+    "trustmark": {
+      "bit_accuracy": 1.0,
+      "decoded_payload": "TM00001",
+      "detected": true,
+      "schema": 2
+    }
+  },
+  "verify": {
+    "confidence": 1.0,
+    "confidence_definition": "confidence = bit_accuracy for single methods; for hybrid, max(trustmark.bit_accuracy, fallback.bit_accuracy), capped at 0.5 when neither channel recovers. Deterministic function of measured decode metrics only - carries no identifier.",
+    "fallback": {
+      "bit_accuracy": 0.98,
+      "decoded_payload": "FB01",
+      "detected": true,
+      "schema": 0
+    },
+    "method": "hybrid",
+    "note": "Two-layer payload recovery = TrustMark OR fallback decode. This is payload recovery, not authentication or provenance.",
+    "recovered": true,
+    "trustmark": {
+      "bit_accuracy": 1.0,
+      "decoded_payload": "TM00001",
+      "detected": true,
+      "schema": 2
+    }
+  }
+}
+LIVE STRESS TESTS PASSED

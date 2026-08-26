@@ -16,24 +16,28 @@ import os
 import random
 import sys
 import time
+from collections import defaultdict
 from glob import glob
 
-import numpy as np
 from PIL import Image
 
 import fallback_watermark as fb
 import transforms
+from metrics import mse_psnr
 
 PIPELINE_VERSION = 'fallback-v1'
 FALLBACK_PAYLOAD = fb.FALLBACK_PAYLOAD
+LOG_PATH = os.path.join(transforms.OUTPUT_DIR, 'logs', 'fallback_1200.log')
 
 
-def mse_psnr(img1, img2):
-    a1 = np.asarray(img1).astype(np.int16)
-    a2 = np.asarray(img2).astype(np.int16)
-    mse = float(np.mean(np.square(a1 - a2)))
-    psnr = float('inf') if mse == 0 else float(20 * np.log10(255.0) - 10 * np.log10(mse))
-    return mse, psnr
+def log(msg):
+    line = f'[{time.strftime("%H:%M:%S")}] {msg}'
+    print(line, flush=True)
+    try:
+        with open(LOG_PATH, 'a', encoding='utf-8') as f:
+            f.write(line + '\n')
+    except OSError:
+        pass
 
 
 def main():
@@ -43,11 +47,24 @@ def main():
     parser.add_argument('--image-count', type=int, default=1200)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--save-image-count', type=int, default=0)
+    parser.add_argument('--resume', action='store_true')
     args = parser.parse_args()
 
     random.seed(args.seed)
     image_files = sorted(glob(os.path.join(args.input_dir, '*.jpg')))[:args.image_count]
     print(f'Found {len(image_files)} images', flush=True)
+
+    done_images = set()
+    if args.resume and os.path.exists(args.output_csv):
+        with open(args.output_csv, newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            counts = defaultdict(int)
+            for row in reader:
+                if row['transform_name'] != 'none':
+                    counts[row['image_id']] += 1
+        expected_per_image = 1 + sum(len(v) for v in transforms.TRANSFORM_STEPS.values()) - 1
+        done_images = {img for img, n in counts.items() if n == sum(len(v) for v in transforms.TRANSFORM_STEPS.values())}
+        print(f'Resume: {len(done_images)} images already complete', flush=True)
 
     from trustmark import TrustMark
     from trustmark_robustness import decode_batch_and_accuracy, encode_payload_to_packet, TM_PAYLOAD
@@ -60,9 +77,11 @@ def main():
                   'pipeline_version', 'encode_mse', 'encode_psnr',
                   'fb_decode_secret', 'fb_decode_present', 'fb_bit_accuracy',
                   'tm_combined_baseline_present', 'width', 'height', 'aspect_ratio']
-    out = open(args.output_csv, 'w', newline='')
+    mode = 'a' if args.resume and os.path.exists(args.output_csv) else 'w'
+    out = open(args.output_csv, mode, newline='')
     writer = csv.DictWriter(out, fieldnames=fieldnames)
-    writer.writeheader()
+    if mode == 'w':
+        writer.writeheader()
 
     baseline_jobs = []   # combined images for TM baseline decode (batched)
     baseline_rows = []
@@ -71,6 +90,8 @@ def main():
     for idx, img_path in enumerate(image_files):
         fname = os.path.basename(img_path)
         image_id = os.path.splitext(fname)[0]
+        if image_id in done_images:
+            continue
         try:
             img_orig = Image.open(img_path).convert('RGB')
         except Exception as e:
@@ -138,8 +159,8 @@ def main():
     out.close()
 
     elapsed = time.time() - t_start
-    expected = len(image_files) * (1 + sum(len(v) for v in transforms.TRANSFORM_STEPS.values()))
-    print(f'Done. {len(image_files)} images -> {expected} rows in {elapsed:.0f}s', flush=True)
+    expected = (len(image_files) - len(done_images)) * (1 + sum(len(v) for v in transforms.TRANSFORM_STEPS.values()))
+    print(f'Done. {len(image_files) - len(done_images)} new images -> {expected} rows in {elapsed:.0f}s', flush=True)
 
 
 if __name__ == '__main__':

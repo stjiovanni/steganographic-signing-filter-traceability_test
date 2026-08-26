@@ -37,9 +37,9 @@ The page-numbered contents list is generated from the final document headings in
 ## List of figures
 
 - Figure 1: Transformation taxonomy and benchmark data flow (Section 3.3).
-- Figure 2 (image to be supplied by the author): Dashboard overview view, final1200 dataset (Section 4.1).
-- Figure 3 (image to be supplied by the author): Dashboard per-transform view, final1200 dataset (Section 4.1).
-- Figure 4 (image to be supplied by the author): Dashboard ensemble decision-matrix view, final1200 dataset (Section 4.1).
+- Figure 2 (image to be supplied by the author): Dashboard Sign/Verify interface, upload and preview panes (Section 4.1).
+- Figure 3 (image to be supplied by the author): Dashboard verification results, single method (Section 4.1).
+- Figure 4 (image to be supplied by the author): Dashboard verification results, hybrid two-layer method (Section 4.1).
 - Figure 5: Final1200 per-transform watermark recovery and hash error (Section 4.6).
 - Figure 6: Pilot (100-image) versus final (1,200-image) transformed-row means (Section 4.6).
 - Figure 7: Payload/ECC ablation development-scale ranking with the selected configuration at 1,200 images (Section 4.7).
@@ -316,7 +316,7 @@ Proposed improvements are not presented as completed results. They are: confirma
 
 ### 4.1 Quality-assurance evidence
 
-Quality assurance combined code inspection, deterministic execution, row-count checks, duplicate-key checks, image-coverage checks, baseline retention, and regeneration scripts. The dashboard is CSV-backed and supports overview, per-transform, ensemble, and per-image inspection. It is a research visualisation and not a production signing service. The database migration exists but has not been executed against a live database; therefore database security, performance, and access control are not evaluated outcomes. The dashboard reads the historical `output/results` directory by default; setting the `CSV_DIR` environment variable to `output/results/final1200` points it at the validated final evidence set.
+Quality assurance combined code inspection, deterministic execution, row-count checks, duplicate-key checks, image-coverage checks, baseline retention, and regeneration scripts. The dashboard is a CSV-backed single-page web application that implements the promised upload, filter, sign and verify workflow. It shows a dataset banner identifying the active evidence set (historical output/results by default; set CSV_DIR to output/results/final1200 for the validated final evidence) and reports verification results per method, including two-layer recovery for the hybrid (TrustMark + fallback) method. It is a research visualisation and not a production signing service. The database migration exists but has not been executed against a live database; therefore database security, performance, and access control are not evaluated outcomes. The dashboard reads the historical `output/results` directory by default; setting the `CSV_DIR` environment variable to `output/results/final1200` points it at the validated final evidence set.
 
 Two corrections materially improve validity. PDQ was serialised as one bit per dimension rather than as a multi-character representation. TrustMark was measured at the raw decoder output before error correction rather than only by exact decoded-message success. The validated final1200 TrustMark file uses these corrected measurements.
 

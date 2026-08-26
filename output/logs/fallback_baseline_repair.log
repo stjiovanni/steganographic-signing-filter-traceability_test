@@ -1,0 +1,29 @@
+[18:53:53] 96550 existing rows; 650 images missing baseline rows
+[19:10:37] 96550 existing rows; 650 images missing baseline rows
+[19:14:42] embedded 100/650
+[19:17:52] embedded 200/650
+[19:21:18] embedded 300/650
+[19:24:15] 96550 existing rows; 650 images missing baseline rows
+[19:27:52] embedded 100/650
+[19:30:19] embedded 200/650
+[19:33:07] embedded 300/650
+[19:35:34] embedded 400/650
+[19:50:23] 96550 existing rows; 650 images missing baseline rows
+[19:52:47] embedded 100/650
+[19:54:59] embedded 200/650
+[19:57:15] embedded 300/650
+[19:59:40] embedded 400/650
+[20:02:22] embedded 500/650
+[20:04:10] embedded 600/650
+[20:05:10] TM baseline decoded 64/650
+[20:05:26] TM baseline decoded 128/650
+[20:05:56] TM baseline decoded 192/650
+[20:06:18] TM baseline decoded 256/650
+[20:06:38] TM baseline decoded 320/650
+[20:07:05] TM baseline decoded 384/650
+[20:07:28] TM baseline decoded 448/650
+[20:07:57] TM baseline decoded 512/650
+[20:08:29] TM baseline decoded 576/650
+[20:08:58] TM baseline decoded 640/650
+[20:09:02] TM baseline decoded 650/650
+[20:09:02] Appended 650 baseline rows

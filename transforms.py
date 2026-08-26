@@ -28,6 +28,10 @@ TRANSFORM_STEPS = {
 
 ALL_TRANSFORMS = list(TRANSFORM_STEPS.keys())
 
+# Transforms whose output depends on the rng; they require an image_id so
+# apply_transform can seed them deterministically.
+STOCHASTIC_TRANSFORMS = {'crop_random', 'salt_pepper_noise'}
+
 def make_seed(image_id, transform_name, intensity):
     """Deterministic seed for random transforms from image_id + transform + intensity."""
     # Python's built-in hash is intentionally randomised between processes.
@@ -37,14 +41,17 @@ def make_seed(image_id, transform_name, intensity):
 
 
 def apply_brightness(img, intensity, rng=None):
+    # rng unused: deterministic; kept for uniform TRANSFORM_FUNCTIONS signature.
     return ImageEnhance.Brightness(img).enhance(intensity)
 
 
 def apply_contrast(img, intensity, rng=None):
+    # rng unused: deterministic; kept for uniform TRANSFORM_FUNCTIONS signature.
     return ImageEnhance.Contrast(img).enhance(intensity)
 
 
 def apply_saturation(img, intensity, rng=None):
+    # rng unused: deterministic; kept for uniform TRANSFORM_FUNCTIONS signature.
     return ImageEnhance.Color(img).enhance(intensity)
 
 
@@ -61,6 +68,7 @@ def apply_vibrancy(img, intensity, rng=None):
 
 
 def apply_gaussian_blur(img, intensity, rng=None):
+    # rng unused: deterministic; kept for uniform TRANSFORM_FUNCTIONS signature.
     return img.filter(ImageFilter.GaussianBlur(radius=intensity))
 
 
@@ -74,6 +82,7 @@ def apply_salt_pepper_noise(img, intensity, rng=None):
 
 
 def apply_jpeg_compression(img, intensity, rng=None):
+    # rng unused: deterministic; kept for uniform TRANSFORM_FUNCTIONS signature.
     # Each worker gets its own path; a fixed filename is unsafe with parallel jobs.
     fd, path = tempfile.mkstemp(prefix='_tmp_jpeg_', suffix='.jpg', dir=OUTPUT_DIR)
     os.close(fd)
@@ -155,12 +164,17 @@ TRANSFORM_FUNCTIONS = {
 
 def apply_transform(img, transform_name, intensity, image_id=None):
     """Apply a transform at a given intensity.
-    Uses deterministic seeding for random transforms if image_id provided."""
+    Stochastic transforms (crop_random, salt_pepper_noise) require image_id
+    so their rng can be seeded deterministically; deterministic transforms
+    ignore image_id."""
     fn = TRANSFORM_FUNCTIONS.get(transform_name)
     if fn is None:
         raise ValueError(f'Unknown transform: {transform_name}')
-    if image_id is not None:
+    if transform_name in STOCHASTIC_TRANSFORMS:
+        if image_id is None:
+            raise ValueError(
+                f'image_id required for stochastic transform {transform_name}')
         rng = np.random.default_rng(make_seed(image_id, transform_name, intensity))
     else:
-        rng = np.random.default_rng(42)
+        rng = None
     return fn(img, intensity, rng=rng)

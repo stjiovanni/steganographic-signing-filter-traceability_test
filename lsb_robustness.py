@@ -1,32 +1,18 @@
 """LSB embedding baseline — structurally parallel to trustmark_robustness.py."""
 
-import os, sys, csv, math, random, argparse, time
+import os, sys, csv, random, argparse, time
 from glob import glob
 from PIL import Image
 import numpy as np
 import transforms
+from metrics import bit_accuracy, mse_psnr, text_to_bits
 
 PIPELINE_VERSION = 'v2.1-reproducible'
 LSB_PAYLOAD = 'LSB0001'
 OUTPUT_DIR = transforms.OUTPUT_DIR
 
 
-def text_to_bits(text):
-    """7-bit ASCII to bitstring (same scheme as TrustMark encode_text_ascii)."""
-    return ''.join(format(ord(t) & 127, '07b') for t in text)
-
-
 PAYLOAD_BITS = text_to_bits(LSB_PAYLOAD)  # 49 bits
-
-
-def mse_psnr(img1, img2):
-    arr1 = np.asarray(img1).astype(np.int16)
-    arr2 = np.asarray(img2).astype(np.int16)
-    mse = np.mean(np.square(arr1 - arr2))
-    if mse == 0:
-        return 0.0, float('inf')
-    psnr = 20 * math.log10(255.0) - 10 * math.log10(mse)
-    return float(mse), float(psnr)
 
 
 def lsb_encode(img, payload_bits):
@@ -48,12 +34,6 @@ def lsb_decode(img, n_bits):
     flat = arr.reshape(-1)
     bits = ''.join(str(flat[i] & 1) for i in range(n_bits))
     return bits
-
-
-def bit_accuracy(extracted_bits, expected_bits):
-    if len(extracted_bits) != len(expected_bits):
-        return 0.0
-    return sum(a == b for a, b in zip(extracted_bits, expected_bits)) / len(expected_bits)
 
 
 def main():

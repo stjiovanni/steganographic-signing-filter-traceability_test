@@ -12,62 +12,13 @@
 </head>
 <body>
   <header>
-    <h1>Watermark Robustness Dashboard</h1>
-    <nav id="tabs" role="tablist" aria-label="Dashboard sections">
-      <button class="tab active" role="tab" id="tab-btn-overview" data-tab="overview" aria-selected="true" aria-controls="tab-overview" tabindex="0">Overview</button>
-      <button class="tab" role="tab" id="tab-btn-per-transform" data-tab="per-transform" aria-selected="false" aria-controls="tab-per-transform" tabindex="-1">Per-Transform</button>
-      <button class="tab" role="tab" id="tab-btn-ensemble" data-tab="ensemble" aria-selected="false" aria-controls="tab-ensemble" tabindex="-1">Ensemble Matrix</button>
-      <button class="tab" role="tab" id="tab-btn-per-image" data-tab="per-image" aria-selected="false" aria-controls="tab-per-image" tabindex="-1">Per-Image</button>
-      <button class="tab" role="tab" id="tab-btn-sign-verify" data-tab="sign-verify" aria-selected="false" aria-controls="tab-sign-verify" tabindex="-1">Sign/Verify</button>
-    </nav>
+    <h1>Watermark Sign / Verify</h1>
+    <div id="dataset-banner" class="dataset-banner" hidden></div>
   </header>
 
   <main>
-    <!-- Overview -->
-    <section id="tab-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-overview">
-      <div class="stats-grid" id="stats-grid"></div>
-      <div class="card chart-card">
-        <h2>Mean Bit Accuracy by Transform</h2>
-        <div id="overview-chart-error" class="no-data chart-error" hidden></div>
-        <canvas id="overview-chart"></canvas>
-      </div>
-    </section>
-
-    <!-- Per-Transform -->
-    <section id="tab-per-transform" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-per-transform">
-      <div class="controls">
-        <label for="transform-select">Transform:</label>
-        <select id="transform-select"></select>
-      </div>
-      <div class="card chart-card">
-        <h2>Method Performance vs Intensity</h2>
-        <div id="transform-error" class="no-data chart-error" hidden></div>
-        <canvas id="transform-chart"></canvas>
-      </div>
-    </section>
-
-    <!-- Ensemble Matrix -->
-    <section id="tab-ensemble" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-ensemble">
-      <div class="card">
-        <h2>Best Method per Transform &times; Intensity</h2>
-        <div class="matrix-wrapper">
-          <div id="ensemble-error" class="no-data" hidden></div>
-          <table id="ensemble-table"></table>
-        </div>
-      </div>
-    </section>
-
-    <!-- Per-Image -->
-    <section id="tab-per-image" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-per-image">
-      <div class="controls">
-        <label for="image-select">Image:</label>
-        <select id="image-select"></select>
-      </div>
-      <div id="per-image-content" class="per-image-content"></div>
-    </section>
-
     <!-- Sign / Verify -->
-    <section id="tab-sign-verify" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-sign-verify">
+    <section id="tab-sign-verify" class="tab-panel active" role="tabpanel">
       <div class="sv-grid">
         <div class="sv-left">
           <div class="card">
@@ -96,6 +47,7 @@
 
             <label class="sv-label" for="sv-method-select">Method</label>
             <select id="sv-method-select" class="sv-select">
+              <option value="hybrid">Hybrid (TrustMark + Fallback)</option>
               <option value="trustmark">TrustMark</option>
               <option value="lsb">LSB</option>
               <option value="dct">DCT</option>
@@ -136,6 +88,23 @@
         </div>
       </div>
       <div id="sv-status" class="sv-status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card stress-panel" aria-labelledby="stress-title">
+      <h2 id="stress-title">Live Stress Test</h2>
+      <p class="stress-intro"><strong>Flow:</strong> upload image &rarr; sign first &rarr; choose transform/intensity &rarr; transform the signed image &rarr; verify the transformed image.</p>
+      <div class="stress-controls">
+        <div><label class="sv-label" for="stress-method">Signing method</label><select id="stress-method" class="sv-select"><option value="hybrid">Hybrid (TrustMark + Fallback)</option><option value="trustmark">TrustMark</option><option value="lsb">LSB</option><option value="dct">DCT</option></select></div>
+        <div><label class="sv-label" for="stress-transform">Transform</label><select id="stress-transform" class="sv-select"></select></div>
+        <div><label class="sv-label" for="stress-intensity">Intensity</label><select id="stress-intensity" class="sv-select"></select></div>
+        <div><label class="sv-label" for="stress-payload">Payload (optional)</label><input id="stress-payload" class="sv-text-input" type="text" placeholder="auto"></div>
+      </div>
+      <button id="stress-run-btn" class="sv-btn accent" disabled>Run Stress Test</button>
+      <div class="stress-previews" aria-label="Stress test previews">
+        <div><div class="sv-preview-label">Signed image</div><div class="sv-preview-img" id="stress-preview-signed"><span class="sv-placeholder">Run a test</span></div></div>
+        <div><div class="sv-preview-label">Transformed image</div><div class="sv-preview-img" id="stress-preview-transformed"><span class="sv-placeholder">Run a test</span></div></div>
+      </div>
+      <div id="stress-result" class="stress-result" hidden></div>
     </section>
   </main>
 

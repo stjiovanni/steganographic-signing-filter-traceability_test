@@ -2,7 +2,7 @@
 
 ## Report
 
-- `24163800_Opaleye_Toluwalope_FPR_v1.0.docx`
+- `24163800_Opaleye_Toluwalope_FPR_v1.7.docx` (cleaned derivative of locked v1.6; `output/FPR_v1.4.md` is the maintained textual source)
 - Export the final checked report to PDF after completing the institutional declaration, contents, figures, tables, glossary, and page-number checks.
 
 ## Artefact
@@ -15,13 +15,16 @@
 
 - `FPR_Evidence.xlsx`
 - `FPR_Improvement_Comparison.xlsx`
-- `output/results/image_manifest.json`
-- `output/results/*.csv`
+- `FPR_Method_Comparison.xlsx`
+- `output/results/image_manifest.json` (historical 100-image pilot)
+- `output/results/*.csv` (historical 100-image: 64,000 hash rows, 8,100 per watermark, 80 ensemble)
+- `output/results/final1200/` (validated final evidence: 768,000 hash rows compressed, 97,200 per watermark, 80 ensemble; 97,200 selected payload/ECC)
 - `output/results/payload_ecc_dev_selection.md`
 - `output/results/ensemble_aware_payload_dev100.md`
 - `output/results/ensemble_aware_payload_final1200.md`
-- `output/figures/*` (including `fpr_payload_ecc_dev_sweep.png`)
+- `output/figures/*` (including `fpr_final1200_method_comparison.png`)
 - `output/logs/run_1200_experiment.log`
+- `study-companion/` (10 chapters, 100 questions; teaching companion, not evidence)
 - `README.md`
 - `CITATIONS.md`
 

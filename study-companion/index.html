@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Project Study Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- Header (fixed) -->
+    <header class="topbar">
+      <h1 id="top-title" class="h1">Topic #1</h1>
+      <div id="top-score" class="top-score" hidden></div>
+    </header>
+
+    <!-- Progress / subheading row -->
+    <div class="subhead-row">
+      <h2 id="subheading" class="subheading">Subheading</h2>
+    </div>
+
+    <!-- Free navigation controls: chapter picker + Free nav toggle + resume indicator -->
+    <div class="nav-controls" id="nav-controls">
+      <label class="jump-label" for="chapter-jump">Jump</label>
+      <select id="chapter-jump" class="chapter-jump" aria-label="Jump to chapter"></select>
+      <label class="free-nav-label" for="free-nav-toggle">
+        <input type="checkbox" id="free-nav-toggle"> Free nav
+      </label>
+      <span id="resume-badge" class="resume-badge" hidden></span>
+    </div>
+
+    <!-- Main scroll area -->
+    <main id="scroll-root" class="scroll">
+      <!-- chapter content is injected here -->
+      <div id="content" class="content"></div>
+    </main>
+
+    <!-- Bottom bar (Prev / Next / Submit) with backdrop blur reading upward -->
+    <div class="bottombar" id="bottombar">
+      <div class="bar-inner">
+        <button id="prev-btn" class="nav-btn" type="button" hidden>Previous</button>
+        <span class="bar-spacer"></span>
+        <button id="next-btn" class="nav-btn primary" type="button" hidden>Next</button>
+        <button id="submit-btn" class="nav-btn primary" type="button" hidden>Submit</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

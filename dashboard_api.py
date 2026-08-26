@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import uuid
@@ -19,29 +20,19 @@ from PIL import Image
 
 import transforms
 import watermark_service
+from csv_store import CSV_DIR, load_rows, rows_for_image
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/msc_proj",
-)
+logger = logging.getLogger(__name__)
 
-CSV_DIR = os.getenv("CSV_DIR", os.path.join(os.path.dirname(__file__), "output", "results"))
-
-CSV_FILES = {
-    "trustmark": "trustmark_robustness_results.csv",
-    "lsb": "lsb_robustness_results.csv",
-    "dct": "dct_robustness_results.csv",
-    "hash": "hash_robustness_results.csv",
-    "ensemble": "ensemble_decision_matrix.csv",
-}
-
-_csv_cache: Dict[str, List[Dict[str, Any]]] = {}
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = FastAPI(title="Watermark Robustness Dashboard")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    # Local research tool: the dashboard binds to 127.0.0.1 and CORS is
+    # restricted to localhost origins. It is not a deployed service.
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -53,14 +44,6 @@ _ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 # Blocks path separators, drive letters, and traversal while allowing
 # float intensities (e.g. "1.15") and letterbox values ("black"/"grey").
 _SAFE_FILENAME_RE = re.compile(r"^[A-Za-z0-9_.\-]+$")
-
-_NUMERIC_COLS = {
-    "intensity_value", "encode_mse", "encode_psnr", "bit_accuracy",
-    "hamming_distance", "width", "height", "aspect_ratio",
-}
-_BOOL_COLS = {
-    "decode_present", "auto_cropped", "hash_ok", "trustmark_ok", "lsb_ok", "dct_ok",
-}
 
 _HASH_COLS = (
     "image_id, filename, transform_name, intensity_value, pipeline_version, "
@@ -87,37 +70,14 @@ def _conn():
     return psycopg2.connect(DATABASE_URL, connect_timeout=3)
 
 
-def _load_csv(key: str) -> List[Dict[str, Any]]:
-    if key in _csv_cache:
-        return _csv_cache[key]
-    path = os.path.join(CSV_DIR, CSV_FILES[key])
-    rows = []
-    if os.path.exists(path):
-        import csv
-        with open(path, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                for col in _NUMERIC_COLS:
-                    if col in row and row[col] not in (None, ""):
-                        try:
-                            row[col] = float(row[col])
-                        except ValueError:
-                            pass
-                for col in _BOOL_COLS:
-                    if col in row:
-                        row[col] = str(row[col]).strip().lower() in ("true", "1", "yes")
-                rows.append(row)
-    _csv_cache[key] = rows
-    return rows
-
-
 def _query_db(sql, params: tuple = ()) -> List[Dict[str, Any]]:
     try:
         with _conn() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute(sql, params)
                 return cur.fetchall()
-    except psycopg2.OperationalError:
+    except psycopg2.OperationalError as exc:
+        logger.warning("Database unavailable (%s); falling back to CSV", exc)
         return []
 
 
@@ -135,13 +95,13 @@ def _by_transform(table: str, pipeline: Optional[str] = None, num_key: str = "in
     rows = _query_db(sql, params)
     if not rows:
         if table == "watermark_results" and pipeline == "trustmark":
-            rows = _load_csv("trustmark")
+            rows = load_rows("trustmark")
         elif table == "watermark_results" and pipeline == "lsb":
-            rows = _load_csv("lsb")
+            rows = load_rows("lsb")
         elif table == "watermark_results" and pipeline == "dct":
-            rows = _load_csv("dct")
+            rows = load_rows("dct")
         elif table == "hash_results":
-            rows = _load_csv("hash")
+            rows = load_rows("hash")
 
     t_map = defaultdict(lambda: defaultdict(list))
     for r in rows:
@@ -185,9 +145,9 @@ def _transforms_from(table: str, pipeline: Optional[str] = None):
     rows = _query_db(sql, params)
     if not rows:
         if table == "hash_results":
-            rows = _load_csv("hash")
+            rows = load_rows("hash")
         elif table == "watermark_results" and pipeline == "lsb":
-            rows = _load_csv("lsb")
+            rows = load_rows("lsb")
 
     t_map = defaultdict(set)
     for r in rows:
@@ -208,13 +168,13 @@ def _transforms_from(table: str, pipeline: Optional[str] = None):
 def get_summary():
     images = _query_db("SELECT DISTINCT image_id FROM hash_results WHERE transform_name != 'none'")
     if not images:
-        images = [r for r in _load_csv("hash") if r.get("transform_name") != "none"]
+        images = [r for r in load_rows("hash") if r.get("transform_name") != "none"]
     transforms = _query_db("SELECT DISTINCT transform_name FROM hash_results WHERE transform_name != 'none'")
     if not transforms:
-        transforms = [r for r in _load_csv("hash") if r.get("transform_name") != "none"]
+        transforms = [r for r in load_rows("hash") if r.get("transform_name") != "none"]
     hash_algs = _query_db("SELECT DISTINCT hash_algorithm FROM hash_results")
     if not hash_algs:
-        hash_algs = _load_csv("hash")
+        hash_algs = load_rows("hash")
 
     return {
         "image_count": len(set(r["image_id"] for r in images)),
@@ -250,7 +210,7 @@ def dct_by_transform(agg: str = "mean"):
 def hash_by_transform(agg: str = "mean"):
     rows = _query_db("SELECT transform_name, intensity_value, hamming_distance FROM hash_results")
     if not rows:
-        rows = _load_csv("hash")
+        rows = load_rows("hash")
 
     t_map = defaultdict(lambda: defaultdict(list))
     for r in rows:
@@ -279,7 +239,7 @@ def hash_by_algorithm(transform: str = None, agg: str = "mean"):
         (transform,) if transform else (),
     )
     if not rows:
-        rows = _load_csv("hash")
+        rows = load_rows("hash")
         if transform:
             rows = [r for r in rows if r.get("transform_name") == transform]
 
@@ -302,11 +262,35 @@ def hash_by_algorithm(transform: str = None, agg: str = "mean"):
     return result
 
 
+@app.get("/api/dataset")
+def get_dataset():
+    rows = load_rows("hash")
+    images = {r["image_id"] for r in rows if r.get("transform_name") != "none"}
+    transforms_set = {r["transform_name"] for r in rows if r.get("transform_name") != "none"}
+    conditions = {f'{r["transform_name"]}:{r["intensity_value"]}' for r in rows
+                  if r.get("transform_name") != "none"}
+    try:
+        db_probe = _conn()
+        db_probe.close()
+        source = "postgresql"
+    except Exception:
+        source = "csv"
+    evidence_label = "final1200 (validated)" if "final1200" in os.path.normpath(CSV_DIR).replace("\\", "/") else "historical 100-image"
+    return {
+        "source": source,
+        "csv_dir": os.path.normpath(CSV_DIR),
+        "evidence_label": evidence_label,
+        "image_count": len(images),
+        "transform_count": len(transforms_set),
+        "condition_count": len(conditions),
+    }
+
+
 @app.get("/api/ensemble")
 def get_ensemble():
     rows = _query_db(f"SELECT {_ENSEMBLE_COLS} FROM ensemble_decision_matrix")
     if not rows:
-        rows = _load_csv("ensemble")
+        rows = load_rows("ensemble")
     return rows
 
 
@@ -316,7 +300,7 @@ def ensemble_matrix():
 
     rows = _query_db("SELECT transform_name, intensity_value, best_method FROM ensemble_decision_matrix")
     if not rows:
-        rows = _load_csv("ensemble")
+        rows = load_rows("ensemble")
 
     ints_by_t = {t: [] for t in transforms}
     best = {}
@@ -336,13 +320,13 @@ def get_image(image_id: str):
     d = _query_db(f"SELECT {_WATERMARK_COLS} FROM watermark_results WHERE image_id = %s AND pipeline = 'dct'", (image_id,))
 
     if not h:
-        h = [r for r in _load_csv("hash") if r.get("image_id") == image_id]
+        h = rows_for_image("hash", image_id)
     if not t:
-        t = [r for r in _load_csv("trustmark") if r.get("image_id") == image_id]
+        t = rows_for_image("trustmark", image_id)
     if not l:
-        l = [r for r in _load_csv("lsb") if r.get("image_id") == image_id]
+        l = rows_for_image("lsb", image_id)
     if not d:
-        d = [r for r in _load_csv("dct") if r.get("image_id") == image_id]
+        d = rows_for_image("dct", image_id)
 
     return {"hash": h, "trustmark": t, "lsb": l, "dct": d}
 
@@ -365,6 +349,44 @@ class SignRequest(BaseModel):
 class VerifyRequest(BaseModel):
     image_id: str
     method: str
+
+
+class StressTestRequest(BaseModel):
+    image_id: str
+    method: str
+    transform_name: str
+    intensity: Union[float, str]
+    payload: Optional[str] = None
+
+
+def _stress_intensity_is_valid(transform_name: str, intensity: Union[float, str]) -> bool:
+    for allowed in transforms.TRANSFORM_STEPS[transform_name]:
+        if str(allowed) == str(intensity):
+            return True
+        try:
+            if float(allowed) == float(intensity):
+                return True
+        except (TypeError, ValueError):
+            pass
+    return False
+
+
+_STRESS_METHODS = {"trustmark", "lsb", "dct", "hybrid"}
+
+
+def _validate_stress_request(req: StressTestRequest) -> None:
+    """Validate the complete stress-test condition before touching an image."""
+    _validate_safe(req.image_id, "image_id")
+    _validate_safe(req.method, "method")
+    _validate_safe(req.transform_name, "transform_name")
+    _validate_safe(str(req.intensity), "intensity")
+    if req.method not in _STRESS_METHODS:
+        raise HTTPException(400, f"Unknown method: {req.method}")
+    if req.transform_name not in transforms.TRANSFORM_STEPS:
+        raise HTTPException(400, f"Unknown transform: {req.transform_name}")
+    if not _stress_intensity_is_valid(req.transform_name, req.intensity):
+        allowed = ", ".join(str(v) for v in transforms.TRANSFORM_STEPS[req.transform_name])
+        raise HTTPException(400, f"Invalid intensity for {req.transform_name}; expected one of: {allowed}")
 
 
 @app.get("/api/transforms/list")
@@ -470,6 +492,71 @@ def verify(req: VerifyRequest):
     return result
 
 
+@app.post("/api/stress_test")
+def stress_test(req: StressTestRequest):
+    """Sign first, transform the signed image, then verify that transformed image."""
+    _validate_stress_request(req)
+
+    src = _resolve_image(req.image_id)
+    try:
+        # Keep this order explicit: the transform must never be applied to the
+        # uploaded source or to an unverified intermediate.
+        signed_meta = watermark_service.sign_image(src, req.method, req.payload)
+        signed_path = signed_meta["signed_path"]
+        signed_id = os.path.splitext(os.path.basename(signed_path))[0]
+        with Image.open(signed_path) as signed_image:
+            transformed = transforms.apply_transform(
+                signed_image.convert("RGB"), req.transform_name, req.intensity, image_id=signed_id
+            )
+        fd, transformed_path = tempfile.mkstemp(
+            prefix=f"{signed_id}_stress_", suffix=".png", dir=watermark_service.PROCESSED_DIR
+        )
+        os.close(fd)
+        transformed.save(transformed_path, format="PNG")
+        transformed_id = os.path.splitext(os.path.basename(transformed_path))[0]
+        verify_result = watermark_service.verify_image(transformed_path, req.method)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception:
+        logger.exception("Stress test failed: image_id=%r", req.image_id)
+        raise HTTPException(500, "Stress test failed")
+
+    return {
+        "signed_id": signed_id,
+        "signed_preview": f"/api/preview/{signed_id}",
+        "transformed_id": transformed_id,
+        "transformed_preview": f"/api/preview/{transformed_id}",
+        "method": req.method,
+        "transform": req.transform_name,
+        "intensity": str(req.intensity),
+        "verification": verify_result,
+        "verify": verify_result,
+    }
+
+
+@app.get("/api/payload_capacity")
+def payload_capacity():
+    """Per-method payload capacities (7-bit ASCII chars) for the UI."""
+    return watermark_service.get_payload_capacity()
+
+
+class AnalyzeRequest(BaseModel):
+    image_id: str
+
+
+@app.post("/api/analyze")
+def analyze(req: AnalyzeRequest):
+    src = _resolve_image(req.image_id)
+    try:
+        result = watermark_service.detect_watermarks(src)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        print(f"[analyze] error: image_id={req.image_id!r} exc={e!r}")
+        raise HTTPException(500, "Analysis failed")
+    return result
+
+
 @app.get("/api/preview/{image_id}")
 def preview_image(image_id: str):
     path = _resolve_image(image_id)
@@ -496,7 +583,11 @@ def _resolve_image(image_id: str) -> str:
     raise HTTPException(404, f"Image {image_id} not found")
 
 
-# --- static dashboard ---
+# --- static mounts (order matters: /companion before the "/" catch-all) ---
+companion_dir = os.path.join(os.path.dirname(__file__), "study-companion")
+if os.path.isdir(companion_dir):
+    app.mount("/companion", StaticFiles(directory=companion_dir, html=True), name="companion")
+
 dashboard_dir = os.path.join(os.path.dirname(__file__), "dashboard")
 if os.path.isdir(dashboard_dir):
     app.mount("/", StaticFiles(directory=dashboard_dir, html=True), name="dashboard")

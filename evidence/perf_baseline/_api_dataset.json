@@ -1,0 +1,8 @@
+{
+    "source":  "csv",
+    "csv_dir":  "C:\\Users\\hp\\Documents\\porfolio\\msc_proj\\output\\results",
+    "evidence_label":  "historical 100-image",
+    "image_count":  263,
+    "transform_count":  12,
+    "condition_count":  80
+}

@@ -1,0 +1,14 @@
+"""Serve the dashboard against the validated final1200 evidence set."""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.environ['CSV_DIR'] = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'output', 'results', 'final1200')
+
+import uvicorn
+from dashboard_api import app
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='127.0.0.1', port=8000)

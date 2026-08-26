@@ -1,0 +1,154 @@
+{
+  "clean_baseline": {
+    "n": 1200,
+    "trustmark": 0.9875,
+    "fallback": 0.9042,
+    "two_layer": 0.9975
+  },
+  "overall_transformed": {
+    "n": 96000,
+    "tm": 0.6073,
+    "fb": 0.4545,
+    "two_layer": 0.6728
+  },
+  "per_transform": {
+    "brightness": {
+      "n": 7200,
+      "tm": 0.8368,
+      "fb": 0.8144,
+      "two_layer": 0.9207
+    },
+    "contrast": {
+      "n": 7200,
+      "tm": 0.8119,
+      "fb": 0.8296,
+      "two_layer": 0.9121
+    },
+    "saturation": {
+      "n": 9600,
+      "tm": 0.9739,
+      "fb": 0.9041,
+      "two_layer": 0.9951
+    },
+    "vibrancy": {
+      "n": 9600,
+      "tm": 0.8322,
+      "fb": 0.8632,
+      "two_layer": 0.9413
+    },
+    "gaussian_blur": {
+      "n": 7200,
+      "tm": 0.8653,
+      "fb": 0.5387,
+      "two_layer": 0.8749
+    },
+    "salt_pepper_noise": {
+      "n": 7200,
+      "tm": 0.3097,
+      "fb": 0.3351,
+      "two_layer": 0.4576
+    },
+    "jpeg_compression": {
+      "n": 9600,
+      "tm": 0.6352,
+      "fb": 0.799,
+      "two_layer": 0.856
+    },
+    "rotation": {
+      "n": 9600,
+      "tm": 0.242,
+      "fb": 0.0221,
+      "two_layer": 0.2562
+    },
+    "scaling": {
+      "n": 7200,
+      "tm": 0.9861,
+      "fb": 0.0197,
+      "two_layer": 0.9865
+    },
+    "crop_center": {
+      "n": 9600,
+      "tm": 0.2607,
+      "fb": 0.0197,
+      "two_layer": 0.2734
+    },
+    "crop_random": {
+      "n": 9600,
+      "tm": 0.2516,
+      "fb": 0.0187,
+      "two_layer": 0.266
+    },
+    "letterbox": {
+      "n": 2400,
+      "tm": 0.08,
+      "fb": 0.0612,
+      "two_layer": 0.1042
+    }
+  },
+  "jpeg_quality_table": [
+    {
+      "quality": "5",
+      "n": 1200,
+      "trustmark": 0.0267,
+      "fallback": 0.6892,
+      "two_layer": 0.6967
+    },
+    {
+      "quality": "10",
+      "n": 1200,
+      "trustmark": 0.0383,
+      "fallback": 0.2942,
+      "two_layer": 0.3217
+    },
+    {
+      "quality": "20",
+      "n": 1200,
+      "trustmark": 0.4233,
+      "fallback": 0.89,
+      "two_layer": 0.9308
+    },
+    {
+      "quality": "35",
+      "n": 1200,
+      "trustmark": 0.8008,
+      "fallback": 0.9008,
+      "two_layer": 0.9617
+    },
+    {
+      "quality": "50",
+      "n": 1200,
+      "trustmark": 0.8992,
+      "fallback": 0.9042,
+      "two_layer": 0.9708
+    },
+    {
+      "quality": "65",
+      "n": 1200,
+      "trustmark": 0.9408,
+      "fallback": 0.9042,
+      "two_layer": 0.98
+    },
+    {
+      "quality": "80",
+      "n": 1200,
+      "trustmark": 0.9683,
+      "fallback": 0.905,
+      "two_layer": 0.9892
+    },
+    {
+      "quality": "95",
+      "n": 1200,
+      "trustmark": 0.9842,
+      "fallback": 0.9042,
+      "two_layer": 0.9975
+    }
+  ],
+  "hypothesis": {
+    "ipr_claim": "Hybrid achieves payload recovery >90% across JPEG",
+    "jpeg_two_layer_recovery": 0.856,
+    "jpeg_trustmark_only_recovery": 0.6352,
+    "jpeg_n": 9600,
+    "confirmed": false
+  },
+  "baseline_missing": null
+}

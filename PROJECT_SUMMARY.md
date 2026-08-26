@@ -125,7 +125,7 @@ Run with: python dashboard_api.py (uvicorn on 127.0.0.1:8000).
 
 7. Database
 
-Schema (migrate_to_db.py)
+Schema (archive/root_scripts/migrate_to_db.py)
 
 PostgreSQL via psycopg2. Three tables with indexes:
 

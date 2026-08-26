@@ -1,4 +1,12 @@
-"""DCT-domain watermarking baseline — embeds in mid-frequency coefficients using differential encoding."""
+"""DCT-domain watermarking baseline — embeds in mid-frequency coefficients using differential encoding.
+
+Embedding rule per payload bit: pick the block at row-major position i, force
+coefficient pair PAIR1/PAIR2 to differ by >= EMBED_STRENGTH in the direction
+encoding the bit (skip blocks that already satisfy it). Each bit owns exactly
+one block, so encode/decode are implemented as batched 8x8 DCTs over the
+selected blocks (vectorised; numerically equivalent to the former per-block
+loop).
+"""
 
 import os, sys, csv, math, random, argparse, time
 from glob import glob
@@ -13,20 +21,10 @@ OUTPUT_DIR = transforms.OUTPUT_DIR
 
 EMBED_STRENGTH = 40
 
-# Zigzag positions 4 and 5 in an 8×8 block (row, col)
-# zigzag[4] = (0, 2), zigzag[5] = (1, 1)
-# But (1,1) is the DC coefficient of the next row... let me check
-# Standard zigzag:
-# 0:(0,0) 1:(0,1) 2:(1,0) 3:(2,0) 4:(1,1) 5:(0,2) 6:(0,3) 7:(1,2)
-# So zigzag 4 = (1,1), zigzag 5 = (0,2)
-# Let me use positions 4 and 7 or similar mid-freq pairs
-# zigzag 4 = (1,1), zigzag 7 = (1,2) — close but good for differential encoding
-
-# Actually, for better robustness, let me use positions that are symmetric
-# (0,2) and (2,0) — zigzag 5 and 3
-# Or (1,1) and (2,0) — zigzag 4 and 3
-PAIR1 = (1, 1)  # zigzag 4
-PAIR2 = (2, 0)  # zigzag 3
+# Mid-frequency differential pair inside an 8x8 block:
+# zigzag 4 = (1, 1), zigzag 3 = (2, 0)
+PAIR1 = (1, 1)
+PAIR2 = (2, 0)
 
 BLOCK_SIZE = 8
 
@@ -50,29 +48,69 @@ def mse_psnr(img1, img2):
 
 
 def dct_2d(block):
-    """2D DCT on an 8×8 block."""
+    """2D DCT on an 8x8 block."""
     return dct(dct(block.T, norm='ortho').T, norm='ortho')
 
 
 def idct_2d(block):
-    """2D inverse DCT on an 8×8 block."""
+    """2D inverse DCT on an 8x8 block."""
     return idct(idct(block.T, norm='ortho').T, norm='ortho')
+
+
+def _dct2_batch(blocks):
+    """Batched 2D DCT over (N, 8, 8); identical transform order to dct_2d."""
+    t = np.swapaxes(blocks, -1, -2)
+    t = dct(t, norm='ortho')
+    t = np.swapaxes(t, -1, -2)
+    return dct(t, norm='ortho')
+
+
+def _idct2_batch(blocks):
+    """Batched 2D inverse DCT over (N, 8, 8); identical transform order to idct_2d."""
+    t = np.swapaxes(blocks, -1, -2)
+    t = idct(t, norm='ortho')
+    t = np.swapaxes(t, -1, -2)
+    return idct(t, norm='ortho')
+
+
+def _pad_to_blocks(y_np):
+    h, w = y_np.shape
+    ph = ((h + BLOCK_SIZE - 1) // BLOCK_SIZE) * BLOCK_SIZE
+    pw = ((w + BLOCK_SIZE - 1) // BLOCK_SIZE) * BLOCK_SIZE
+    padded = np.pad(y_np, ((0, ph - h), (0, pw - w)), mode='edge')
+    return padded, ph, pw
+
+
+def _block_index(n_bits, n_blocks_w):
+    idx = np.arange(n_bits)
+    return idx // n_blocks_w, idx % n_blocks_w
+
+
+def _apply_differential(D, bits_array, strength):
+    """Force PAIR1/PAIR2 apart by >= strength in the bit's direction, skipping
+    blocks that already satisfy the condition (matches the original loop)."""
+    c1 = D[:, PAIR1[0], PAIR1[1]]
+    c2 = D[:, PAIR2[0], PAIR2[1]]
+    avg = (c1 + c2) / 2.0
+    half = strength / 2.0
+    one = bits_array == 1
+    need_one = one & ~((c2 - c1) > strength)
+    need_zero = (~one) & ~((c1 - c2) > strength)
+    D[need_one, PAIR1[0], PAIR1[1]] = avg[need_one] + half
+    D[need_one, PAIR2[0], PAIR2[1]] = avg[need_one] - half
+    D[need_zero, PAIR1[0], PAIR1[1]] = avg[need_zero] - half
+    D[need_zero, PAIR2[0], PAIR2[1]] = avg[need_zero] + half
 
 
 def dct_encode(img, payload_bits, strength=EMBED_STRENGTH):
     """Embed payload_bits in DCT mid-frequency coefficients of Y channel."""
     img = img.convert('RGB')
-    # Convert to YCbCr and take Y channel
     ycc = img.convert('YCbCr')
     y, cb, cr = ycc.split()
     y_np = np.asarray(y, dtype=np.float64)
-
     h, w = y_np.shape
-    # Pad to multiples of BLOCK_SIZE
-    ph = ((h + BLOCK_SIZE - 1) // BLOCK_SIZE) * BLOCK_SIZE
-    pw = ((w + BLOCK_SIZE - 1) // BLOCK_SIZE) * BLOCK_SIZE
-    y_padded = np.pad(y_np, ((0, ph - h), (0, pw - w)), mode='edge')
 
+    y_padded, ph, pw = _pad_to_blocks(y_np)
     n_blocks_h = ph // BLOCK_SIZE
     n_blocks_w = pw // BLOCK_SIZE
     n_blocks_total = n_blocks_h * n_blocks_w
@@ -85,29 +123,11 @@ def dct_encode(img, payload_bits, strength=EMBED_STRENGTH):
     y_blocks = y_padded.reshape(n_blocks_h, BLOCK_SIZE, n_blocks_w, BLOCK_SIZE)
     y_blocks = y_blocks.transpose(0, 2, 1, 3)
 
-    # DCT and embed
-    for i in range(N_BITS):
-        bh = i // n_blocks_w
-        bw = i % n_blocks_w
-        block = dct_2d(y_blocks[bh, bw])
-        c1 = block[PAIR1]
-        c2 = block[PAIR2]
-        target_bit = bits_array[i]
-        if target_bit == 1:
-            if c2 - c1 > strength:
-                pass
-            else:
-                avg = (c1 + c2) / 2.0
-                block[PAIR1] = avg + strength / 2.0
-                block[PAIR2] = avg - strength / 2.0
-        else:
-            if c1 - c2 > strength:
-                pass
-            else:
-                avg = (c1 + c2) / 2.0
-                block[PAIR1] = avg - strength / 2.0
-                block[PAIR2] = avg + strength / 2.0
-        y_blocks[bh, bw] = idct_2d(block)
+    bh, bw = _block_index(N_BITS, n_blocks_w)
+    selected = y_blocks[bh, bw]
+    D = _dct2_batch(selected)
+    _apply_differential(D, bits_array, strength)
+    y_blocks[bh, bw] = _idct2_batch(D)
 
     y_blocks = y_blocks.transpose(0, 2, 1, 3)
     y_recon = y_blocks.reshape(ph, pw)
@@ -125,11 +145,7 @@ def dct_decode(img, n_bits):
     y, _, _ = ycc.split()
     y_np = np.asarray(y, dtype=np.float64)
 
-    h, w = y_np.shape
-    ph = ((h + BLOCK_SIZE - 1) // BLOCK_SIZE) * BLOCK_SIZE
-    pw = ((w + BLOCK_SIZE - 1) // BLOCK_SIZE) * BLOCK_SIZE
-    y_padded = np.pad(y_np, ((0, ph - h), (0, pw - w)), mode='edge')
-
+    y_padded, ph, pw = _pad_to_blocks(y_np)
     n_blocks_h = ph // BLOCK_SIZE
     n_blocks_w = pw // BLOCK_SIZE
 
@@ -137,20 +153,15 @@ def dct_decode(img, n_bits):
     y_blocks = y_blocks.transpose(0, 2, 1, 3)
 
     available = n_blocks_h * n_blocks_w
-    bits = []
-    for i in range(min(n_bits, available)):
-        bh = i // n_blocks_w
-        bw = i % n_blocks_w
-        block = dct_2d(y_blocks[bh, bw])
-        c1 = block[PAIR1]
-        c2 = block[PAIR2]
-        bits.append('1' if c1 > c2 else '0')
+    count = min(n_bits, available)
+    bh, bw = _block_index(count, n_blocks_w)
+    D = _dct2_batch(y_blocks[bh, bw])
+    bits_arr = D[:, PAIR1[0], PAIR1[1]] > D[:, PAIR2[0], PAIR2[1]]
 
+    bits = ''.join('1' if b else '0' for b in bits_arr)
     # Pad with zeros if not enough blocks
-    while len(bits) < n_bits:
-        bits.append('0')
-
-    return ''.join(bits)
+    bits += '0' * (n_bits - count)
+    return bits
 
 
 def bit_accuracy(extracted_bits, expected_bits):
