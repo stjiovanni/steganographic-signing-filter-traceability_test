@@ -1,0 +1,305 @@
+/* ============ Project Study Companion — mobile-only ============
+   All values in px (never rem). Exact spacing per spec.
+   Colours: background #fff, text #000, score #008000 => oklch.
+   Option states: fill/stroke/text derived from #008000 and #FF0000.
+   ============================================================== */
+
+:root {
+  --bg: #ffffff;
+  --text: #000000;
+
+  /* #008000  (green score / correct) -> OKLCH */
+  --green: oklch(0.4668 0.1803 142.5);
+  /* #FF0000  (wrong) -> OKLCH */
+  --red: oklch(0.6278 0.2577 29.23);
+
+  /* derived alpha layers for option states */
+  --correct-fill: oklch(0.4668 0.1803 142.5 / 0.25);
+  --correct-stroke: oklch(0.4668 0.1803 142.5 / 0.60);
+  --correct-text: oklch(0.4668 0.1803 142.5 / 0.80);
+
+  --wrong-fill: oklch(0.6278 0.2577 29.23 / 0.25);
+  --wrong-stroke: oklch(0.6278 0.2577 29.23 / 0.60);
+  --wrong-text: oklch(0.6278 0.2577 29.23 / 0.80);
+
+  --accent-blur-base: 8px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Archivo', Helvetica, Arial, sans-serif;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.app {
+  position: relative;
+  max-width: 430px;
+  margin: 0 auto;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+/* ---------- Typography ---------- */
+.h1 {
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 40px;
+  letter-spacing: -0.96px;   /* -3% of 32px */
+}
+
+.subheading {
+  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-weight: 400;
+  font-size: 21px;
+  line-height: 24px;
+  letter-spacing: 0.63px;    /* 3% of 21px */
+  text-transform: uppercase;
+}
+
+.body {
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  letter-spacing: -0.65px;   /* -5% of 13px */
+  color: var(--text);
+}
+
+/* ---------- Layout spacing ---------- */
+.h1 { margin-bottom: 12px; }              /* h1 -> subheading: 12px */
+.subheading { margin-bottom: 24px; }      /* subheading -> body: 24px */
+.body { margin-bottom: 12px; }            /* body -> next item: 12px */
+figure { margin: 0; }
+figure .body { margin: 0; }
+
+/* image -> caption: 4px */
+figure img { display: block; width: 100%; margin-bottom: 4px; }
+figcaption {
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 14px;
+  color: #555;
+  margin-bottom: 12px;
+}
+
+/* fixed top bar */
+.topbar {
+  padding: 18px 20px 0;
+  background: linear-gradient(to bottom, var(--bg) 70%, transparent);
+  z-index: 30;
+}
+.top-score {
+  float: right;
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 24px;
+  color: var(--green);
+}
+.subhead-row { padding: 0 20px; }
+
+/* main scroll */
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 0 20px 140px;   /* bottom space so content clears the bar */
+  scrollbar-width: none;
+}
+.scroll::-webkit-scrollbar { display: none; }
+
+.content { padding-top: 0; }
+
+/* quiz question block */
+.q-title {
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 26px;
+  margin: 0 0 16px;
+}
+.q-meta {
+  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-size: 16px;
+  line-height: 20px;
+  letter-spacing: 0.48px;
+  margin: 0 0 8px;
+  color: #000;
+}
+.q-meta .correct { color: var(--green); }
+
+/* options list */
+.options { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid #000;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-family: 'Archivo', Helvetica, sans-serif;
+}
+.option .tag {
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 20px;
+  font-family: 'Archivo', Helvetica, sans-serif;
+  flex-shrink: 0;
+}
+.option .opt-text {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--text);
+}
+.option.selected { border-width: 2px; }
+
+/* correct state */
+.option.correct {
+  background: var(--correct-fill);
+  border-color: var(--correct-stroke);
+}
+.option.correct .tag, .option.correct .opt-text { color: var(--correct-text); }
+
+/* wrong state */
+.option.wrong {
+  background: var(--wrong-fill);
+  border-color: var(--wrong-stroke);
+}
+.option.wrong .tag, .option.wrong .opt-text { color: var(--wrong-text); }
+
+/* disabled after submit */
+.option.locked { pointer-events: none; }
+
+/* explanation box */
+.explanation {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--correct-fill);
+  border-left: 3px solid var(--correct-stroke);
+  color: var(--correct-text);
+}
+.explanation .body { color: var(--correct-text); }
+
+/* ---------- Bottom bar with dynamic blur reading upward ---------- */
+.bottombar {
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  padding: 22px 20px 16px;
+  background: linear-gradient(to bottom, transparent 0%, var(--bg) 55%);
+  /* backdrop blur is set on the inner ::before via JS for dynamic strength */
+}
+.bottombar::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 100%;
+  backdrop-filter: blur(var(--accent-blur-base));
+  -webkit-backdrop-filter: blur(var(--accent-blur-base));
+  transition: backdrop-filter 60ms linear;
+  pointer-events: none;
+  z-index: -1;
+}
+.bar-inner { display: flex; align-items: center; gap: 12px; position: relative; }
+.bar-spacer { flex: 1; }
+
+.nav-btn {
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-size: 16px;
+  line-height: 20px;
+  letter-spacing: -0.48px;   /* -3% of 16px */
+  font-weight: 600;
+  padding: 12px 18px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--text);
+  cursor: pointer;
+}
+.nav-btn.primary { background: var(--text); color: var(--bg); }
+.nav-btn:disabled { opacity: 0.4; pointer-events: none; }
+
+/* results screen */
+.result-box { text-align: center; padding: 40px 0; }
+.result-box .big {
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 48px;
+}
+.result-box .big .green { color: var(--green); }
+.result-box .sub { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 18px; line-height: 22px; letter-spacing: 0.54px; }
+
+.nav-btn.full { width: 100%; }
+
+/* ---------- Free-nav controls (chapter jump + toggle) ---------- */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px 10px;
+  flex-wrap: wrap;
+}
+.jump-label {
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #555;
+}
+.chapter-jump {
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border: 1px solid #000;
+  background: #fff;
+  color: #000;
+  max-width: 190px;
+  cursor: pointer;
+}
+.free-nav-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid #000;
+  padding: 6px 10px;
+  background: #fff;
+}
+.free-nav-label input { accent-color: #000; }
+.free-nav-label:has(input:checked) {
+  background: #000;
+  color: #fff;
+}
+.resume-badge {
+  font-family: 'Archivo', Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--green);
+  border: 1px solid var(--correct-stroke);
+  background: var(--correct-fill);
+  padding: 4px 8px;
+}
