@@ -338,5 +338,33 @@ table(doc, ["Figure", "Asset"], [
 ], widths=[0.8, 5.4])
 note(doc, "Status:", "This is a study and presentation document derived from repository evidence. It is not a replacement for the formal project report, institutional declarations, or a signed provenance implementation.")
 
+page_break(doc)
+heading(doc, "Appendix B. Glossary", 1)
+doc.add_paragraph("Terms as used in this guide and the final report (22 entries).")
+table(doc, ["Term", "Definition"], [
+    ("Authenticity", "Claim that content is true or correctly attributed; not established by signal recovery alone."),
+    ("BCH", "Bose-Chaudhuri-Hocquenghem error-correcting code used in watermark packets."),
+    ("Bit accuracy", "Proportion of expected watermark bits recovered before error correction."),
+    ("Decode presence", "Whether the decoder reports a valid payload; distinct from raw bit accuracy."),
+    ("DCT", "Discrete cosine transform; frequency-domain baseline embedding in mid-frequency coefficients."),
+    ("ECC", "Error-correcting code; converts partial bit recovery into valid messages."),
+    ("Ensemble", "Decision matrix combining hash and watermark signals per condition."),
+    ("False acceptance", "Accepting an unrelated or incorrectly watermarked image as verified."),
+    ("Hamming distance", "Number of differing bits between reference and transformed hash."),
+    ("Integrity", "Evidence that bytes or content are unchanged; requires hard binding."),
+    ("Letterbox", "Padding added to preserve aspect ratio; separate from cropping."),
+    ("LSB", "Least-significant-bit embedding; fragile spatial-domain baseline."),
+    ("MSE", "Mean squared error; pixel-domain distortion measure."),
+    ("Payload", "Fixed test message embedded and recovered; not an identifier."),
+    ("Perceptual hash", "Compact content-derived representation compared by distance."),
+    ("pHash/dHash", "Specific perceptual hash variants (among eight tested)."),
+    ("Provenance", "Signed, accountable record of claims; requires manifests and trust chain."),
+    ("PSNR", "Peak signal-to-noise ratio; imperceptibility metric, not robustness."),
+    ("Recovery", "Whether a payload decodes; see decode presence."),
+    ("TrustMark", "Learned neural watermark method used as primary candidate."),
+    ("Two-layer fallback", "Second BCH-coded DCT layer; recovery is TrustMark OR fallback."),
+    ("Transform intensity", "Parameter value of a named condition; comparable only within family."),
+], widths=[1.65, 4.55])
+
 doc.save(OUT)
 print(OUT)

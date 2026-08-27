@@ -93,6 +93,32 @@ PAGES = [
         "Evidence and submission context: SUBMISSION_MANIFEST.md; CITATIONS.md",
         "Status: this is a study and presentation document derived from repository evidence. It is not a replacement for the formal project report or a signed provenance implementation.",
     ], None, None),
+    ("APPENDIX B. GLOSSARY (1/2)", "Terms as used in this guide", [
+        "Authenticity — claim that content is true/attributed; not proven by recovery.",
+        "BCH — error-correcting code in watermark packets.",
+        "Bit accuracy — recovered bits before correction.",
+        "Decode presence — valid payload reported; distinct from raw accuracy.",
+        "DCT — frequency-domain baseline in mid-frequency coefficients.",
+        "ECC — converts partial recovery into valid messages.",
+        "Ensemble — per-condition best/fallback matrix.",
+        "False acceptance — accepting unrelated image as verified.",
+        "Hamming distance — differing bits between hashes.",
+        "Integrity — unchanged bytes; needs hard binding.",
+        "Letterbox — padding for aspect ratio, separate from crop.",
+    ], None, None),
+    ("APPENDIX B. GLOSSARY (cont.) (2/2)", "Terms as used (continued)", [
+        "LSB — fragile spatial-domain baseline.",
+        "MSE — pixel distortion measure.",
+        "Payload — fixed test message, not an identifier.",
+        "Perceptual hash — content-derived representation vs distance.",
+        "pHash/dHash — hash variants among eight tested.",
+        "Provenance — signed accountable record; needs manifests/trust chain.",
+        "PSNR — imperceptibility metric, not robustness.",
+        "Recovery — payload decodes (decode presence).",
+        "TrustMark — learned neural watermark candidate.",
+        "Two-layer fallback — second BCH DCT layer; OR recovery.",
+        "Transform intensity — named condition param, only within-family comparable.",
+    ], None, None),
 ]
 
 
