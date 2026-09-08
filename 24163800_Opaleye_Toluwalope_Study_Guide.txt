@@ -1,0 +1,379 @@
+STUDY GUIDE - MSc Final Project Presentation
+Student: 24163800 (Toluwalope Opaleye)
+Project: Steganographic Signing and Filter Traceability in Digital Media
+Source report: 24163800_Opaleye_Toluwalope_FPR_v3.1.docx
+Companion code reviewed: archive.zip (Phishing_Email_Detection_Deep_Experiments.ipynb, streamlit_app.py)
+
+Report structure at a glance (actual headings in FPR v3.1):
+Abstract; 1. Introduction (1.1-1.9); 2. Literature Review (2.1-2.4);
+3. Methodology (3.1-3.11, ethics lives in 3.10); 4. Quality and Results
+(4.1-4.12); 5. Evaluation and Conclusion (5.1-5.8); References;
+Appendices A-I (A repository evidence index, B artefact/reproducibility
+record, C transform and payload specification, D validation requirements,
+E proposed final statistical table, F ethics/legal/deployment, G future
+experiment protocol, H code, I Gantt timeline).
+Note: there is no separate Chapter 6 Ethics; ethics is Section 3.10 plus
+Appendix F, and Section 5 is Evaluation and Conclusion rather than a
+separate Discussion chapter. Figure numbering runs 1,2,3,4,5,7,8,9 -
+there is no Figure 6 in v3.1.
+
+
+======================================================================
+A. CONVERSATIONAL SCRIPT (about 7-8 minutes spoken)
+======================================================================
+
+What did we do and how did we do it?
+
+The short version: I built an auditable benchmarking framework that
+measures how well different verification signals survive the everyday
+transformations an image goes through online - resizing, JPEG
+recompression, filters, cropping, rotation and padding. I took 1,200
+deterministically selected images from the MS-COCO 2017 validation
+split, applied twelve transform families across eighty named conditions,
+and ran four pipelines over them: TrustMark, a neural watermark; two
+deliberately simple classical baselines, LSB and DCT; and eight
+perceptual hash variants, including the 256-bit PDQ. That produced
+768,000 hash rows and 97,200 rows per watermark method - the 1,200
+untransformed baselines plus 96,000 transformed observations. On top of
+that benchmark I built my own contribution: a hybrid two-layer recovery
+channel, where if TrustMark fails to decode, a second, BCH-coded DCT
+fallback watermark gets a chance to rescue the payload. And I wrapped
+it in a dashboard so you can sign and verify an image and see each
+method's answer side by side.
+
+Why did we do it?
+
+Because provenance claims are easy to overstate. When a platform
+recompresses or crops an image, the metadata is stripped, the pixels
+change and the cryptographic digest breaks - yet the image is still
+recognisably the same image. Four different questions keep getting
+blurred together in the literature: is this image similar to a
+reference, can I recover a hidden message, is it byte-for-byte intact,
+and who signed it. I wanted to separate similarity, recovery, integrity
+and accountability, and measure honestly where each signal lives and
+where it dies. There is also a professional angle: if a verification
+score is misread as an authenticity guarantee, you get unjustified
+takedowns or misplaced trust, so the whole framework is built around
+evidence discipline - every number in the report traces back to a
+validated file.
+
+Research question
+
+To what extent do a neural watermark, perceptual hashes and classical
+watermarking baselines retain interpretable verification signal when
+images undergo graduated photometric, compression and geometric
+transformations - and how should that signal be reported without
+confusing recovery, similarity, integrity or provenance?
+
+Methodology
+
+Everything runs through one shared module, transforms.py, the single
+source of truth for the twelve families and eighty conditions. Random
+operations like random crop and salt-and-pepper noise derive their seeds
+deterministically from the image ID, transform name and intensity via
+SHA-256, so any machine can reconstruct the exact same transformed
+image. JPEG is genuinely written to disk and reopened, so we test the
+real codec, not a simulation. Ten validation gates guard the data -
+coverage, duplicate keys, ranges - and a run that fails validation is
+not reported. For uncertainty, the image is the statistical unit:
+percentile bootstrap with 2,000 resamples at the fixed seed 20260812,
+and Wilson intervals for decode proportions. Why that seed? A bootstrap
+is a random resampling procedure, so if you do not pin the seed your
+confidence intervals wiggle on every rerun. 20260812 is an arbitrary but
+public constant - essentially the date the analysis was frozen, 12
+August 2026 - recorded in the output metadata so anyone regenerates
+identical intervals.
+
+Results
+
+The headline: the hybrid two-layer channel lifts exact payload recovery
+from 60.7 percent with TrustMark alone to 67.3 percent over the 96,000
+transformed observations - a 6.6 percentage point gain. The rescue is
+concentrated where I predicted: dimension-preserving conditions and
+low-quality JPEG. Table 12 is the money table, the JPEG quality ladder.
+At quality 5 TrustMark alone recovers just 2.7 percent of payloads; the
+two-layer system gets 69.7 percent. At quality 20 it is 42.3 up to 93.1
+percent. Why show those two qualities? Quality 5 is the extreme stress
+case where the fallback's complementary strength is most dramatic, and
+quality 20 is a realistic aggressive recompression you would actually
+see on social platforms. Between them sits quality 10, where recovery
+dips to 32.2 percent - an irregularity we report openly as codec-
+dependent non-monotonic behaviour rather than hiding it. Every recovery
+figure is drawn on a full 0-to-100 percent scale, a deliberate honesty
+choice: recovery is a proportion, and a truncated axis would make the
+6.6-point gain look enormous. The full scale shows the gain is real but
+modest, and that geometric attacks still beat us - rotation, cropping
+and letterbox remain near chance, with letterbox two-layer at only 10.4
+percent, because the fallback's block layout assumes dimensions
+survived. On the hash side, the pooled bit-error fraction is 7.4
+percent, and PDQ being 256-bit matters: the other hashes are 64-bit, so
+distances are normalised by bit length before comparison - and we had
+to fix a real serialisation bug where PDQ was stored as multi-character
+strings per dimension, which silently corrupted the distances. One more
+honest result: my interim proposal hypothesised over 90 percent recovery
+across JPEG and PNG. The measured JPEG figure is 85.6 percent, PNG was
+never implemented, and that is reported as a non-confirmation, not a
+hit.
+
+Brief summary
+
+The framework works, it is auditable, and it is honest. Neural
+watermarking and perceptual hashes provide complementary signals under
+most routine transforms; the two-layer hybrid buys a real, measured
+6.6-point recovery improvement; geometric transformations remain the
+open frontier; and every claim is bounded by what the validated
+1,200-image benchmark can actually support.
+
+
+======================================================================
+B. CODE PRIDE LIST (5 items)
+======================================================================
+
+1. Deterministic seeding in transforms.py (make_seed). Stochastic
+   transforms seed their RNG from SHA-256 of image_id + transform name +
+   intensity, deliberately avoiding Python's built-in hash(), which is
+   randomised between processes. That one design decision is what makes
+   the entire 96,000-row benchmark reproducible on any machine, and it
+   is why the report can promise row-level traceability.
+
+2. Hard validation gates in validate_experiment.py. Before any analysis,
+   the script recomputes expected coverage (image count times conditions
+   per image), counts unique image IDs, and detects duplicate composite
+   keys - then calls SystemExit on any mismatch. A 100-image command
+   literally cannot validate 1,200-image coverage, so a partial run can
+   never masquerade as a final result. That is the G2/G3 gate story in
+   one file.
+
+3. The fallback watermark channel in fallback_watermark.py. Each payload
+   bit is BCH_SUPER-coded into a 100-bit packet and repeated five times
+   in interleaved 8x8 DCT blocks spread evenly across the image, so a
+   partial crop destroys at most a fraction of the repeats; decoding is
+   majority vote before BCH correction, and all blocks are transformed
+   in one vectorised batch call. Dimension-changing transforms fail
+   cleanly by design rather than decoding against a mismatched layout -
+   that is thoughtful failure engineering, not just happy-path code.
+
+4. Reproducible statistics in analyze_uncertainty.py. The bootstrap uses
+   a fixed local RNG seeded at 20260812 (not global numpy state, so no
+   other code can perturb the stream), decode proportions get exact
+   Wilson binomial intervals, the CLI refuses fewer than 100 resamples,
+   and the script self-tests against known values. Statistics you can
+   rerun and defend.
+
+5. Honest, defensive demo engineering in streamlit_app.py (archive.zip).
+   The feature pipeline is byte-for-byte identical to training (same
+   TF-IDF vectorizer, scaler and column order, with a comment explaining
+   why that is essential); classify_url_field() detects whether the URL
+   column is a real link, a binary flag or a hash placeholder instead of
+   assuming the schema; missing dates become a -1 sentinel rather than
+   crashing; models load once via st.cache_resource; and the example
+   buttons write st.session_state before the widgets render, with a
+   comment explaining Streamlit's rerun semantics. It even ships an
+   honest disclaimer that the prototype is not a substitute for
+   professional security software.
+
+
+======================================================================
+C. CHALLENGE MAP (5 items)
+======================================================================
+
+1. Raw-bit accuracy required reaching inside TrustMark's decoder before
+   error correction. The obvious metric - exact decoded-message success
+   - hides partial signal, so the pipeline had to tap the raw decoder
+   output upstream of ECC (gate G5). Getting that measurement right
+   changed the numbers: TrustMark's mean raw bit accuracy is 85.17%
+   while its exact decode rate is 60.73%.
+
+2. The PDQ serialisation bug. PDQ is a 256-bit hash but was serialised
+   as a multi-character representation per dimension instead of one bit,
+   silently inflating every Hamming distance. Finding it required
+   actually auditing hash lengths against the spec (gate G4) and
+   recomputing the affected hash output - a measurement-validity fix,
+   not a cosmetic one.
+
+3. Guaranteeing 1,200 images x 80 conditions = 96,000 transformed rows
+   per watermark method (768,000 hash rows) with zero duplicates and
+   zero silent baseline mixing. Rows from the same image are dependent,
+   baselines are encode-only and must be excluded from robustness means,
+   and the compressed hash CSV needs integrity-checked reading - all
+   enforced through coverage and duplicate-key gates rather than trust.
+
+4. The quality-10 JPEG irregularity. Recovery does not degrade
+   monotonically: at quality 10 the fallback (29.4%) underperforms its
+   own quality-5 result (68.9%), a codec-quantisation interaction.
+   Methodologically hard because the honest move is to report the
+   anomaly and decline to smooth it away - first-crossing-only reporting
+   would have concealed it.
+
+5. A falsified hypothesis, handled honestly. The interim proposal
+   promised above-90% payload recovery across JPEG and PNG; the measured
+   two-layer JPEG figure is 85.6% (TrustMark alone 63.5%) and PNG was
+   never implemented. The hard part was methodological - reporting a
+   non-confirmation with the same prominence as the wins, and reframing
+   the contribution as an evidence-bounded framework rather than a
+   robustness claim.
+
+
+======================================================================
+D. FIGURE/TABLE DECODER
+======================================================================
+
+--- Tables in Section 4 (Quality and Results) ---
+
+Table 7 - Evidence matrix: claims, sources, scale and permitted wording
+(4.2). Shows every numerical claim mapped to its source file, scale and
+the wording it is allowed to carry. We included it so no claim in the
+report can outrun its underlying evidence set.
+
+Table 8 - Validated 1,200-image benchmark condition-level means by
+method and transform (4.6). The master results table: TrustMark 0.8517,
+DCT 0.7198, LSB 0.5878 mean raw bit accuracy across 80 conditions, with
+hash pooled bit-error 0.0737 (worst algorithm 0.1645), and per-transform
+rows showing geometric conditions near chance. We chose condition-level
+means with baselines excluded so encode-only rows never inflate
+robustness.
+
+Table 9 - Payload/ECC ablation ranking (4.7). Twelve configurations
+(four BCH modes crossed with 1/4/5-character payloads) ranked at
+development scale, with bch_super_4chars winning at 66.4% corrected-
+exact and 99% clean decode, then revalidated at full 1,200 scale
+(66.22%). We ran it to prove the fallback's configuration was chosen by
+evidence, not convenience.
+
+Table 10 - Image-level uncertainty summary (4.10). Percentile bootstrap
+95% CIs (2,000 resamples, seed 20260812) for continuous metrics and
+Wilson intervals for decode proportions, image as the unit; e.g.
+TrustMark decode-present mean 0.6073 with envelope [0.0082, 0.9955]
+across conditions. We chose image-level intervals because CSV rows from
+the same image are dependent, and pooled rows would overstate confidence.
+
+Table 11 - Two-layer payload-recovery rate by transform (4.11). Shows
+recovery when either TrustMark OR the fallback decodes, per transform:
+saturation 99.5%, brightness 92.1%, scaling 98.7%, but rotation 25.6%,
+crops around 27%, letterbox 10.4%. This is the table that locates the
++6.6pp rescue in dimension-preserving conditions and admits the
+geometric frontier.
+
+Table 12 - Payload recovery by JPEG quality, the quality ladder (4.11).
+1,200 images per JPEG setting: quality 5 goes 2.7% (TrustMark) to 69.7%
+(two-layer), quality 20 goes 42.3% to 93.1%, recovery is at or above 90%
+from quality 65 up, and quality 10 shows the honest irregularity at
+32.2%. We chose this ladder because JPEG recompression is the most
+common real-world attack, and the per-quality view shows exactly where
+the fallback earns its place.
+
+Table 13 - Method comparison workbook summary (4.12). The headline
+table: hybrid two-layer 67.28% transformed recovery (99.75% clean) vs
+TrustMark alone 60.73% (98.75%), DCT 15.26%, LSB 4.90%, with raw bit
+accuracy reported separately so it is never confused with recovery.
+This is the single table to point at when asked "what did you achieve".
+
+--- Other tables ---
+
+Table 1 - Objectives and success criteria (1.3). The contract table:
+each objective, its evidence of completion, and status, including two
+items explicitly marked not implemented. Sets the honest tone up front.
+
+Table 2 - IPR/DPP promise versus delivery (1.5). Audits what the
+proposal promised against what was delivered, including the falsified
+above-90% hypothesis. We kept it because a non-confirmation reported
+plainly is worth more than a quietly edited target.
+
+Table 3 - Evidence sets, artefacts and permitted use (3.2). Lists each
+evidence set (hash, LSB, DCT, TrustMark at 1,200 images) with its file
+and what claims it may support, so scale and provenance are never
+ambiguous.
+
+Table 4 - Metric definitions and evidentiary limits (3.5). Defines
+Hamming distance, raw bit accuracy, decode presence and PSNR with what
+each does and does not support - the construct-separation table that
+keeps similarity, recovery and integrity apart.
+
+Table 5 - Validation gates and failure responses (3.6). The ten gates
+G1-G10 with their failure responses, from manifest checksums to report/
+dashboard/CSV reconciliation. Shows quality assurance is designed, not
+retrofitted.
+
+Table 6 - Validation gate enforcement audit (3.6). Maps each gate to its
+actual enforcing mechanism (validate_experiment.py, analyze_uncertainty
+.py, code corrections, or manual review) and marks partial enforcement
+honestly.
+
+Table 14 - Threat and risk matrix (5.4). Nine risks (partial runs,
+wrong metrics, false provenance confidence, adaptive removal, misuse,
+licensing, dashboard exposure, storage) with likelihood, impact,
+controls and residual concerns.
+
+Table 15 - Project work packages and outcomes (5.5). The five-phase
+Gantt reflection - what each phase planned and what it produced.
+
+Table 16 - BCS Code of Conduct mapping (5.6). Maps project behaviour to
+BCS responsibilities (public interest, competence, integrity, due care,
+privacy, security, accurate representation) as professional reflection,
+explicitly not a certification claim.
+
+--- Figures ---
+
+Figure 1 - Transformation taxonomy and benchmark data flow (3.3). Shows
+the twelve transform families grouped by mechanism feeding the four
+pipelines. We chose it as the orientation map - one glance explains the
+whole experimental design.
+
+Figure 2 - Dashboard Sign/Verify interface (4.1). The upload and
+preview panes of the working dashboard. Proves the artefact exists and
+is demonstrable, not just described.
+
+Figure 3 - Dashboard verification results, single method (4.1). Shows a
+per-method verification readout with the active evidence-set banner, so
+viewers see results carry provenance, not bare scores.
+
+Figure 4 - Dashboard verification results, hybrid two-layer method
+(4.1). The same readout for the hybrid channel - the visual proof that
+the two-layer contribution is implemented in the tool, not only in CSVs.
+
+Figure 5 - Per-transform watermark recovery and hash error (4.6).
+Visualises Table 8 on a 0-100% scale, making the value-level vs
+geometric split immediately visible. Chosen because the pattern -
+strong photometric, weak geometric - is the chapter's core message.
+
+Figure 7 - Payload/ECC ablation ranking with selected configuration
+(4.7). Bar view of Table 9 with the chosen bch_super_4chars highlighted
+and its validated 1,200 result. Shows the tuning decision was
+data-driven.
+
+Figure 8 - Method-comparison graph (4.12). The visual of Table 13:
+67.28% vs 60.73% headline on a full 0-100% axis, so the improvement is
+shown honestly, without axis truncation inflating it.
+
+Figure 9 - MSc Project FPR Gantt timeline (Appendix I). The five-phase
+February-August 2026 timeline. Included as the project-management
+evidence behind Table 15.
+
+(There is no Figure 6 in FPR v3.1; numbering runs from Figure 5 to
+Figure 7.)
+
+
+======================================================================
+KEY NUMBERS TO MEMORISE
+======================================================================
+
+1,200 images (MS-COCO 2017 val, deterministically selected)
+12 transform families x 80 named conditions
+768,000 hash rows; 97,200 rows per watermark method (1,200 baseline +
+96,000 transformed)
+Headline: 67.3% vs 60.7% exact payload recovery (+6.6pp over 96,000
+transformed observations; 67.28 vs 60.73 in Table 13)
+JPEG quality 5: 2.7% to 69.7%; quality 20: 42.3% to 93.1%; quality 10
+irregularity 32.2%; recovery >= 90% at quality 65+
+Hypothesis check: >90% promised; 85.6% JPEG two-layer measured
+(63.5% TrustMark alone); PNG never implemented - non-confirmation
+PDQ: 256-bit, one bit per dimension after serialisation fix; other
+hashes 64-bit; distances normalised by bit length
+Uncertainty: percentile bootstrap, 2,000 resamples, seed 20260812;
+Wilson intervals for decode proportions; image is the statistical unit
+Ablation: bch_super_4chars, 66.4% dev / 66.22% validated, 99% clean;
+ensemble rescore 89.36%
+Means (Table 8): TrustMark 0.8517, DCT 0.7198, LSB 0.5878 raw bit
+accuracy; hash pooled bit-error 0.0737, worst algorithm 0.1645
+Weak spot: geometric transforms near chance - letterbox 10.4%,
+rotation 25.6%, crops about 27% (two-layer)
